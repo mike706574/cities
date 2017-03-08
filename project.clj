@@ -5,6 +5,7 @@
                  [environ "1.1.0"]
                  [ring/ring-core "1.5.0"]
                  [ring/ring-jetty-adapter "1.5.0"]
+                 [ring-cors "0.1.9"]
                  [liberator "0.14.1"]
                  [bidi "2.0.16"]
                  [mike/misplaced-villages "0.0.1-SNAPSHOT"]]

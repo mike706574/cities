@@ -1,6 +1,6 @@
 # misplaced-villages-server
 
-Backend for Lost Cities clone.
+A backend for a [Lost Cities](https://en.wikipedia.org/wiki/Lost_Cities) clone.
 
 ## Copyright and License
 

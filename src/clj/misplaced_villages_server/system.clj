@@ -5,6 +5,7 @@
             [com.stuartsierra.component :as component]
             [taoensso.timbre :as log]
             [ring.adapter.jetty :refer [run-jetty]]
+            [ring.middleware.cors :refer [wrap-cors]] ;
             [liberator.core :refer [defresource]]
             [bidi.ring :refer (make-handler)]
             [misplaced-villages.game :as game]
@@ -103,5 +104,9 @@
 (def routes
   ["/" {"game" game}])
 
+
 (defn system [config]
-  {:app (jetty-service config (make-handler routes))})
+  {:app (jetty-service config (-> routes
+                                  (make-handler)
+                                  (wrap-cors :access-control-allow-origin [#".*"]
+                                             :access-control-allow-methods [:get :put])))})
