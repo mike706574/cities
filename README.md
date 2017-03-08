@@ -2,8 +2,6 @@
 
 Backend for Lost Cities clone.
 
-Also uses [component](https://github.com/stuartsierra/component) and [timbre](https://github.com/ptaoussanis/timbre).
-
 ## Copyright and License
 
 The use and distribution terms for this software are covered by the
