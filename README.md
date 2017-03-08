@@ -1,6 +1,6 @@
 # misplaced-villages-server
 
-A simple example webservice using [bidi](https://github.com/juxt/bidi) and [Liberator](https://github.com/clojure-liberator/liberator/).
+Backend for Lost Cities clone.
 
 Also uses [component](https://github.com/stuartsierra/component) and [timbre](https://github.com/ptaoussanis/timbre).
 
