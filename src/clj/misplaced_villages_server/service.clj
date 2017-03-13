@@ -1,8 +1,7 @@
 (ns misplaced-villages-server.service
-  (:require [clojure.string :as str]
-            [com.stuartsierra.component :as component]
+  (:require [com.stuartsierra.component :as component]
             [taoensso.timbre :as log]
-            [ring.adapter.jetty :refer [run-jetty]])
+            [aleph.http :as aleph-http])
   (:gen-class :main true))
 
 (defn- already-started
@@ -11,10 +10,10 @@
   service)
 
 (defn- start-service
-  [{:keys [id port handler] :as service}]
+  [{:keys [id port] :as service} handler]
   (log/info (str "Starting " id " on port " port "..."))
   (try
-    (let [server (run-jetty handler {:join? false :port port})]
+    (let [server (aleph-http/start-server handler {:port port})]
       (log/info (str "Finished starting."))
       (assoc service :server server))
     (catch java.net.BindException e
@@ -24,7 +23,7 @@
 (defn- stop-service
   [{:keys [id port server] :as service}]
   (log/info (str "Stopping " id " on port " port "..."))
-  (.stop server)
+  (.close server)
   (dissoc service :server))
 
 (defn- already-stopped
@@ -32,22 +31,20 @@
   (log/info (str id " already stopped."))
   service)
 
-(defrecord JettyService [id port handler server]
+(defrecord AlephService [id port handler server]
   component/Lifecycle
   (start [this]
     (if server
       (already-started this)
-      (start-service this)))
+      (start-service this handler)))
   (stop [this]
     (if server
       (stop-service this)
       (already-stopped this))))
 
-(defn jetty-service
-  [{:keys [id port] :as config} handler]
-  {:pre [(string? id)
-         (not (str/blank? id))
-         (integer? port)
+(defn aleph-service
+  [{:keys [port] :as config} handler]
+  {:pre [(integer? port)
          (> port 0)
          (fn? handler)]}
-  (map->JettyService (assoc config :handler handler)))
+  (component/using (map->AlephService (assoc config :handler handler)) []))

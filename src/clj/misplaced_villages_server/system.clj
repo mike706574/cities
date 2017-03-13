@@ -1,112 +1,110 @@
 (ns misplaced-villages-server.system
-  (:require [clojure.string :refer [blank?]]
-            [clojure.java.io :as io]
-            [clojure.data.json :as json]
-            [com.stuartsierra.component :as component]
-            [taoensso.timbre :as log]
-            [ring.adapter.jetty :refer [run-jetty]]
-            [ring.middleware.cors :refer [wrap-cors]] ;
-            [liberator.core :refer [defresource]]
-            [bidi.ring :refer (make-handler)]
-            [misplaced-villages.game :as game]
+  (:require [aleph.http :as http]
+            [clojure.edn :as edn]
+            [clojure.spec :as spec]
+            [compojure.core :as compojure :refer [GET]]
+            [compojure.route :as route]
+            [manifold.stream :as s]
+            [manifold.deferred :as d]
+            [manifold.bus :as bus]
             [misplaced-villages.card :as card]
-            [misplaced-villages.player :as player]
+            [misplaced-villages.game :as game]
             [misplaced-villages.move :as move]
-            [misplaced-villages-server.service :refer [jetty-service]])
-  (:gen-class :main true))
+            [misplaced-villages-server.service :as service]
+            [ring.middleware.params :as params]))
 
-(def game-state (atom (game/start-game ["Mike" "Abby"])))
+(def non-websocket-request
+  {:status 400
+   :headers {"content-type" "application/text"}
+   :body "Expected a websocket request."})
 
-(defn body-as-string
-  [ctx]
-  (if-let [body (get-in ctx [:request :body])]
-    (condp instance? body
-      java.lang.String body
-      (slurp (io/reader body)))))
+(defn echo-handler
+  [req]
+  (-> (http/websocket-connection req)
+      (d/chain
+       (fn [socket]
+         (s/connect socket socket)))
+      (d/catch
+          (fn [_]
+            non-websocket-request))))
 
-(defn parse-json
-  [ctx key]
-  (when (#{:put :post} (get-in ctx [:request :request-method]))
-    (try
-      (if-let [body (body-as-string ctx)]
-        (let [data (json/read-str body :key-fn keyword)]
-          [false {key data}])
-        {:message "No body"})
-      (catch Exception e
-        (.printStackTrace e)
-        {:message (format "IOException: %s" (.getMessage e))}))))'
+(def game-bus (bus/event-bus))
 
-(defn check-content-type
-  [ctx content-types]
-  (if (#{:put :post} (get-in ctx [:request :request-method]))
-    (or
-     (some #{(get-in ctx [:request :headers "content-type"])}
-           content-types)
-     [false {:message "Unsupported Content-Type"}])
-    true))
+(defn process-action
+  [game action-str]
+  (let [action (edn/read-string action-str)]
+    (if-not (spec/valid? ::move/move action)
+      {::game/status :invalid-move}
+      (do
+        (println "Taking action...")
+        (game/take-action game action)))))
 
-(defresource game
-  :allowed-methods [:get :put]
-  :available-media-types ["application/json"]
-  :malformed? (fn [ctx]
-                (log/info "Malformed?")
-                (parse-json ctx :body))
-  :authorized? (fn [ctx]
-                 (log/info "Authorized?")
-                 (if (#{:put :post} (get-in ctx [:request :request-method]))
-                   (let [players (::game/players @game-state)]
-                     (if-let [player (get-in ctx [:request :headers "player"])]
-                       (if (some #(= % player) players)
-                         (do (log/info (str player " is playing."))
-                             [true {:player player}])
-                         [false {:message "You are not playing."}])
-                       [false {:message "Who are you?"}]))
-                   true))
-  :handle-ok (fn [ctx]
-               (if-let [player (get-in ctx [:request :headers "player"])]
-                 (let [game-state @game-state
-                       players (::game/players game-state)]
-                   (if-not (some #(= player %) players)
-                     (throw (ex-info (str player " is not playing..") {:players players}))
-                     (do (log/info (str "Returning data for " player "."))
-                         (game/for-player game-state player))))
-                 (do (log/info "No player specified - returning full game state.")
-                     @game-state)))
-  :conflict? (fn [ctx]
-               (log/info "Conflict?")
-               (if (#{:put :post} (get-in ctx [:request :request-method]))
-                 (let [player (:player ctx)
-                       {:keys [card destination source]} (:body ctx)
-                       card (-> card
-                                (update :type keyword)
-                                (update :color keyword)
-                                (card/card))
-                       destination (keyword destination)
-                       source (keyword source)]
-                   (log/info (str player ", " card ", " destination ", " source))
-                   (let [move (move/move player card destination source)
-                         {:keys [::game/status ::game/state] :as response} (game/take-action @game-state move)]
-                     (log/info (str "Status: " status))
-                     (if (= status :taken)
-                       [false {:updated-game-state state}]
-                       [true {:game-status status}])))
-                 false))
-  :put! (fn [ctx]
-          (reset! game-state (:new-game-state ctx)))
-  :handle-conflict (fn [ctx]
+(defn handle-action
+  [games req]
+  (d/let-flow [conn (d/catch
+                        (http/websocket-connection req)
+                        (fn [_] nil))]
+    (if-not conn
+      non-websocket-request
+      (d/let-flow [player-id (s/take! conn)
+                   game-id (s/take! conn)]
+        (s/connect-via
+         (bus/subscribe game-bus game-id)
+         (fn [message]
+           (println "Message:" message)
+           (s/put! conn (pr-str message)))
+         conn)
+        (s/consume
+         #(bus/publish! game-bus game-id %)
+          (->> conn
+              (s/map (partial process-action (get @games game-id)))
+              (s/buffer 100)))))))
 
-                     {:game-status (:game-status ctx)})
-  :handle-exception (fn [ctx]
-                      (let [exception (:exception ctx)]
-                        (log/error (:exception ctx))
-                        (ex-data exception))))
+(defn action-handler
+  [games]
+  (partial handle-action games))
 
-(def routes
-  ["/" {"game" game}])
-
+(defn handler
+  [games]
+  (params/wrap-params
+   (compojure/routes
+    (GET "/game/:id" [id]
+         (if-let [game (get @games id)]
+           {:status 200
+            :headers {"Content-Type" "application/edn"}
+            :body (pr-str game)}
+           {:status 404
+            :headers {"Content-Type" "application/edn"}
+            :body (pr-str {:message (str "Game " id " not found.")})}))
+    (GET "/game-websocket" [] (action-handler games))
+    (route/not-found "No such page."))))
 
 (defn system [config]
-  {:app (jetty-service config (-> routes
-                                  (make-handler)
-                                  (wrap-cors :access-control-allow-origin [#".*"]
-                                             :access-control-allow-methods [:get :put])))})
+  (let [games (atom {"1" (game/start-game ["Mike" "Abby"])})]
+    {:app (service/aleph-service config (handler games))}))
+
+(comment
+  (-> @(http/get "http://localhost:8000/game/1" {:throw-exceptions false})
+      (:body)
+      (slurp)
+      (edn/read-string))
+
+  (keys (ns-publics 'misplaced-villages.card))
+  (def conn @(http/websocket-client "ws://localhost:8000/game-websocket"))
+  (s/put-all! conn ["Abby" "1"])
+  (s/put! conn (pr-str (move/move
+                        "Mike"
+                        (card/wager :blue)
+                        :expedition
+                        :draw-pile)))
+  @(s/take! conn)
+
+  @(s/take! conn1)   ;=> "Alice: hello"
+  @(s/take! conn2)   ;=> "Alice: hello"
+
+  (s/put! conn2 "hi!")
+
+  @(s/take! conn1)   ;=> "Bob: hi!"
+
+  @(s/take! conn2)   ;=> "Bob: hi!"
+  )
