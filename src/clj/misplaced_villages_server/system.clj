@@ -11,22 +11,13 @@
             [misplaced-villages.game :as game]
             [misplaced-villages.move :as move]
             [misplaced-villages-server.service :as service]
-            [ring.middleware.params :as params]))
+            [ring.middleware.params :as params]
+            [ring.middleware.cors :as cors]))
 
 (def non-websocket-request
   {:status 400
    :headers {"content-type" "application/text"}
    :body "Expected a websocket request."})
-
-(defn echo-handler
-  [req]
-  (-> (http/websocket-connection req)
-      (d/chain
-       (fn [socket]
-         (s/connect socket socket)))
-      (d/catch
-          (fn [_]
-            non-websocket-request))))
 
 (def game-bus (bus/event-bus))
 
@@ -66,18 +57,24 @@
 
 (defn handler
   [games]
-  (params/wrap-params
-   (compojure/routes
-    (GET "/game/:id" [id]
-         (if-let [game (get @games id)]
-           {:status 200
-            :headers {"Content-Type" "application/edn"}
-            :body (pr-str game)}
-           {:status 404
-            :headers {"Content-Type" "application/edn"}
-            :body (pr-str {:message (str "Game " id " not found.")})}))
-    (GET "/game-websocket" [] (action-handler games))
-    (route/not-found "No such page."))))
+  (-> (compojure/routes
+       (GET "/game/:id" {{id :id} :params {player "player"} :headers}
+            (if-let [game (get @games id)]
+              (if player
+                {:status 200
+                 :headers {"Content-Type" "application/edn"}
+                 :body (pr-str (game/for-player game player))}
+                {:status 200
+                 :headers {"Content-Type" "application/edn"}
+                 :body (pr-str game)})
+              {:status 404
+               :headers {"Content-Type" "application/edn"}
+               :body (pr-str {:message (str "Game " id " not found.")})}))
+       (GET "/game-websocket" [] (action-handler games))
+       (route/not-found "No such page."))
+      (params/wrap-params)
+      (cors/wrap-cors :access-control-allow-origin [#"http://192.168.1.141.*"]
+                      :access-control-allow-methods [:get :put :post :delete])))
 
 (defn system [config]
   (let [games (atom {"1" (game/start-game ["Mike" "Abby"])})]
@@ -89,12 +86,12 @@
       (slurp)
       (edn/read-string))
 
-  (keys (ns-publics 'misplaced-villages.card))
+;;  (keys (ns-publics 'misplaced-villages.card))
   (def conn @(http/websocket-client "ws://localhost:8000/game-websocket"))
   (s/put-all! conn ["Abby" "1"])
   (s/put! conn (pr-str (move/move
-                        "Mike"
-                        (card/wager :blue)
+                        "Abby"
+                        (card/wager :gree)
                         :expedition
                         :draw-pile)))
   @(s/take! conn)
@@ -105,6 +102,5 @@
   (s/put! conn2 "hi!")
 
   @(s/take! conn1)   ;=> "Bob: hi!"
-
   @(s/take! conn2)   ;=> "Bob: hi!"
   )
