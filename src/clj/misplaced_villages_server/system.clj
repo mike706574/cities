@@ -12,7 +12,9 @@
             [misplaced-villages.move :as move]
             [misplaced-villages-server.service :as service]
             [ring.middleware.params :as params]
-            [ring.middleware.cors :as cors]))
+            [ring.middleware.cors :as cors]
+            [misplaced-villages.player :as player]
+            [misplaced-villages.report :as report]))
 
 (def non-websocket-request
   {:status 400
@@ -80,21 +82,41 @@
   (let [games (atom {"1" (game/start-game ["Mike" "Abby"])})]
     {:app (service/aleph-service config (handler games))}))
 
-(comment
+;; Client
+(defn game-1
+  []
   (-> @(http/get "http://localhost:8000/game/1" {:throw-exceptions false})
       (:body)
       (slurp)
-      (edn/read-string))
+      (edn/read-string)))
+
+(defn hand-for
+  [game player]
+  (-> game
+      (::game/rounds)
+      (last)
+      (::game/player-data)
+      (get "Abby")
+      (::player/hand)))
+
+(comment
+  (-> (game-1)
+      (hand-for "Abby"))
+
+
+
 
 ;;  (keys (ns-publics 'misplaced-villages.card))
   (def conn @(http/websocket-client "ws://localhost:8000/game-websocket"))
   (s/put-all! conn ["Abby" "1"])
-  (s/put! conn (pr-str (move/move
-                        "Abby"
-                        (card/wager :gree)
-                        :expedition
-                        :draw-pile)))
-  @(s/take! conn)
+
+  (do
+    @(s/put! conn (pr-str (move/move
+                           "Abby"
+                           (card/wager :green)
+                           :expedition
+                           :draw-pile)))
+    @(s/take! conn))
 
   @(s/take! conn1)   ;=> "Alice: hello"
   @(s/take! conn2)   ;=> "Alice: hello"

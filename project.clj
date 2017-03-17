@@ -1,4 +1,4 @@
-(defproject mike/misplaced-villages-server "0.0.1-SNAPSHOT"
+(defproject org.clojars.mike706574/misplaced-villages-server "0.0.1-SNAPSHOT"
   :dependencies [[org.clojure/clojure "1.9.0-alpha14"]
                  [com.taoensso/timbre "4.8.0"]
                  [manifold "0.1.6"]
@@ -8,7 +8,7 @@
                  [aleph "0.4.3"]
                  [ring-cors "0.1.9"]
                  [compojure "1.5.2"]
-                 [mike/misplaced-villages "0.0.1-SNAPSHOT"]]
+                 [org.clojars.mike706574/misplaced-villages "0.0.1-SNAPSHOT"]]
   :source-paths ["src/clj"]
   :test-paths ["test/clj"]
   :profiles {:uberjar {:aot :all
