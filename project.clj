@@ -16,5 +16,6 @@
              :dev {:source-paths ["dev"]
                    :target-path "target/dev"
                    :dependencies [[org.clojure/tools.namespace "0.2.11"]
+                                  [org.clojure/test.check "0.9.0"]
                                   [clj-http "3.4.1"]
                                   [org.clojure/data.json "0.2.6"]]}})

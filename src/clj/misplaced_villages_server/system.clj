@@ -2,6 +2,8 @@
   (:require [aleph.http :as http]
             [clojure.edn :as edn]
             [clojure.spec :as spec]
+            [clojure.spec.test :as stest]
+            [clojure.string :as str]
             [compojure.core :as compojure :refer [GET]]
             [compojure.route :as route]
             [manifold.stream :as s]
@@ -14,7 +16,9 @@
             [ring.middleware.params :as params]
             [ring.middleware.cors :as cors]
             [misplaced-villages.player :as player]
-            [misplaced-villages.report :as report]))
+            [taoensso.timbre :as log]))
+
+(stest/instrument)
 
 (def non-websocket-request
   {:status 400
@@ -23,14 +27,36 @@
 
 (def game-bus (bus/event-bus))
 
+(defn update-existing
+  [m k f]
+  (if (contains? m k)
+    (update m k f)
+    m))
+
+(defn take-action
+  [games game-id action]
+  (log/debug (str "Attempting move: " action))
+  (let [game (get @games game-id)
+        {:keys [::game/status
+                ::game/state] :as response} (game/take-action game action)]
+    (log/debug (str "Status: " status))
+    (when (= status :taken)
+      (log/debug (str "Updating game."))
+      (swap! games (fn [games] (assoc games game-id state))))
+    response))
+
 (defn process-action
-  [game action-str]
-  (let [action (edn/read-string action-str)]
-    (if-not (spec/valid? ::move/move action)
-      {::game/status :invalid-move}
-      (do
-        (println "Taking action...")
-        (game/take-action game action)))))
+  [games game-id player-id action-str]
+  (let [game (get @games game-id)
+        action (edn/read-string action-str)
+        response (cond
+                   (nil? game) {::game/status :no-game}
+                   (nil? player-id) {::game/status :no-player}
+                   (not (spec/valid? ::move/move action)) {::game/status :invalid-move
+                                                           ::game/explanation (spec/explain-data ::move/move action)}
+                   :else (take-action games game-id action))]
+    (merge response {::game/id game-id
+                     ::player/id player-id})))
 
 (defn handle-action
   [games req]
@@ -39,19 +65,37 @@
                         (fn [_] nil))]
     (if-not conn
       non-websocket-request
-      (d/let-flow [player-id (s/take! conn)
-                   game-id (s/take! conn)]
+      (d/let-flow [id-message (s/take! conn)
+                   id-body (edn/read-string id-message)
+                   {game-id ::game/id
+                    player-id ::player/id} id-body]
+        (println (str "Player " player-id " connected to game " game-id "."))
+        ;; Give player current game state
+        (s/put! conn (pr-str {::game/status :connected
+                              ::game/state (game/for-player
+                                            (get @games game-id)
+                                            player-id)}))
+        ;; Connect player to bus
         (s/connect-via
          (bus/subscribe game-bus game-id)
          (fn [message]
-           (println "Message:" message)
-           (s/put! conn (pr-str message)))
+           (println (str "Preparing message for " player-id "..."))
+           (s/put! conn (pr-str (update-existing
+                                 message
+                                 ::game/state
+                                 #(game/for-player % player-id)))))
          conn)
+        ;; Process all player actions
         (s/consume
          #(bus/publish! game-bus game-id %)
           (->> conn
-              (s/map (partial process-action (get @games game-id)))
-              (s/buffer 100)))))))
+              (s/map (partial process-action games game-id player-id))
+              (s/buffer 100)))
+        ;; Publish player connection
+        (bus/publish! game-bus game-id
+                      {::game/status :player-connected
+                       ::player/id player-id})
+        {:status 101}))))
 
 (defn action-handler
   [games]
@@ -78,51 +122,34 @@
       (cors/wrap-cors :access-control-allow-origin [#"http://192.168.1.141.*"]
                       :access-control-allow-methods [:get :put :post :delete])))
 
+(defonce games (atom {"1" (game/start-game ["Mike" "Abby"])}))
 (defn system [config]
-  (let [games (atom {"1" (game/start-game ["Mike" "Abby"])})]
-    {:app (service/aleph-service config (handler games))}))
+  {:app (service/aleph-service config (handler games))})
 
-;; Client
-(defn game-1
-  []
-  (-> @(http/get "http://localhost:8000/game/1" {:throw-exceptions false})
-      (:body)
-      (slurp)
-      (edn/read-string)))
 
-(defn hand-for
-  [game player]
-  (-> game
-      (::game/rounds)
-      (last)
-      (::game/player-data)
-      (get "Abby")
-      (::player/hand)))
+;; stuff
+(def last-round #(-> % ::game/rounds last))
+(def turn #(-> % last-round ::game/turn))
+(def hand-for #(-> % last-round ::game/player-data (get %2) ::player/hand))
+(def expeditions-for #(-> % last-round ::game/player-data (get %2) ::player/expeditions))
+(def cards-remaining #(-> % last-round ::game/draw-pile count))
+
+(def game #(get @games "1"))
 
 (comment
-  (-> (game-1)
-      (hand-for "Abby"))
-
-
-
-
-;;  (keys (ns-publics 'misplaced-villages.card))
   (def conn @(http/websocket-client "ws://localhost:8000/game-websocket"))
-  (s/put-all! conn ["Abby" "1"])
+  (def d (s/take! conn))
+  (realized? d)
+  @d
 
-  (do
-    @(s/put! conn (pr-str (move/move
-                           "Abby"
-                           (card/wager :green)
-                           :expedition
-                           :draw-pile)))
-    @(s/take! conn))
+  (s/put! conn (pr-str {::player/id "Abby" ::game/id "1"}))
+  (s/put! conn (pr-str (move/move
+                        "Abby"
+                        (card/wager :yellow)
+                        :expedition
+                        :draw-pile)))
 
-  @(s/take! conn1)   ;=> "Alice: hello"
-  @(s/take! conn2)   ;=> "Alice: hello"
 
-  (s/put! conn2 "hi!")
-
-  @(s/take! conn1)   ;=> "Bob: hi!"
-  @(s/take! conn2)   ;=> "Bob: hi!"
-  )
+  (def response (s/take! conn))
+  (-> (game-1) turn)
+  (-> (game-1) (hand-for "Abby")))
