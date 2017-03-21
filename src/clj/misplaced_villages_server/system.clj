@@ -122,13 +122,13 @@
       (cors/wrap-cors :access-control-allow-origin [#"http://192.168.1.141.*"]
                       :access-control-allow-methods [:get :put :post :delete])))
 
-(defonce games (atom {"1" (game/start-game ["Mike" "Abby"])}))
+(defonce games (atom {"1" (game/rand-game ["Mike" "Abby"])}))
+
 (defn system [config]
   {:app (service/aleph-service config (handler games))})
 
-
 ;; stuff
-(def last-round #(-> % ::game/rounds last))
+(def last-round #(-> % ::game/round))
 (def turn #(-> % last-round ::game/turn))
 (def hand-for #(-> % last-round ::game/player-data (get %2) ::player/hand))
 (def expeditions-for #(-> % last-round ::game/player-data (get %2) ::player/expeditions))
@@ -138,9 +138,19 @@
 
 (comment
   (def conn @(http/websocket-client "ws://localhost:8000/game-websocket"))
+
+  (turn (game))
+
+  (hand-for (game) "Abby")
+
+  (game/take-action (game) (move/exp* "Abby" (card/number :red 8)))
+  (hand-for (game) "Mike")
+
   (def d (s/take! conn))
   (realized? d)
   @d
+
+  (game)
 
   (s/put! conn (pr-str {::player/id "Abby" ::game/id "1"}))
   (s/put! conn (pr-str (move/move
