@@ -47,14 +47,15 @@
 (defn take-action
   [games game-id action]
   (log/debug (str "Attempting move: " action))
-  (let [game (get @games game-id)
-        {:keys [::game/status
-                ::game/state] :as response} (game/take-turn game action)]
-    (log/debug (str "Status: " status))
-    (when (contains? #{:taken :round-over :game-over} status)
-      (log/debug (str "Updating game."))
-      (swap! games (fn [games] (assoc games game-id state))))
-    response))
+  (dosync
+   (let [game (get @games game-id)
+         {:keys [::game/status
+                 ::game/state] :as response} (game/take-turn game action)]
+     (log/debug (str "Status: " status))
+     (when (contains? #{:taken :round-over :game-over} status)
+       (log/debug (str "Updating game."))
+       (alter games (fn [games] (assoc games game-id state))))
+     response)))
 
 (defn process-action
   [games game-id player-id action-str]

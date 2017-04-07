@@ -26,7 +26,27 @@
 (defn menu
   []
   (println "Rendering menu!")
-  [:span "HELLO"])
+  [:div
+   [:span (str "You are " @(rf/subscribe [:player]) ".")]
+   [:h3 "Games"]
+   (let [games @(rf/subscribe [:games])]
+     (if (empty? games)
+       [:span "You have no games."]
+       [:ul
+        (for [[id state] games]
+          [:li {:key id} id ", Versus " (::game/opponent state)])]))
+   [:h3 "Invitations"]
+   (let [invitations @(rf/subscribe [:invitations])]
+     (if (empty? invitations)
+       [:span "You have no invitations."]
+       [:ul (for [invitation invitations]
+              [:li {:key invitation} (str invitation)])]))
+   [:h3 "Messages"]
+   (let [messages @(rf/subscribe [:messages])]
+     (if (empty? messages)
+       [:span "No messages."]
+       [:ul (for [message messages]
+              [:li {:key message} (str message)])]))])
 
 (defn loading
   []
@@ -47,9 +67,11 @@
         screen @(rf/subscribe [:screen])
         status-message @(rf/subscribe [:status-message])]
     [:div
+     (button "Refresh" #(rf/dispatch [:initialize]))
      [:p
       (if status-message status-message "No status message set.")
       (when loading? " Loading...") ]
+
      (case screen
        :player-selection [player-selection]
        :menu [menu]

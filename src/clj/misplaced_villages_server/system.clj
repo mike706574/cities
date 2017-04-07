@@ -16,28 +16,33 @@
             [taoensso.timbre :as log]))
 
 (defn handler
-  [games bus]
+  [{:keys [games invitations game-bus player-bus] :as deps}]
   (-> (compojure/routes
        (GET "/menu" []
             nil)
        (GET "/game/:id" {{id :id} :params {player "player"} :headers}
             (response/resource-response "game/index.html" {:root "public"}))
-       (GET "/game-websocket" [] (action/handler games bus))
-       (GET "/menu-websocket" [] (menu/handler games bus))
+       (GET "/game-websocket" [] (action/handler games game-bus))
+       (GET "/menu-websocket" [] (menu/handler deps))
        (route/not-found "No such page."))
       (resource/wrap-resource "public")
       (params/wrap-params)
       (cors/wrap-cors :access-control-allow-origin [#"http://192.168.1.141.*"]
                       :access-control-allow-methods [:get :put :post :delete])))
 
-(defonce games (atom {"1" (game/rand-game ["Mike" "Abby"])}))
-(defonce bus (bus/event-bus))
-
+(defonce games (ref {"1" (game/rand-game ["Mike" "Abby"])}))
+(defonce game-bus (bus/event-bus))
+(defonce player-bus (bus/event-bus))
 
 (defn system [config]
-  {:app (service/aleph-service config (handler games bus))})
+  (let [deps {:games games
+              :invitations (ref #{})
+              :game-bus game-bus
+              :player-bus player-bus}]
+    {:app (service/aleph-service config (handler deps))}))
 
 (comment
+  @games
   (def bus (bus/event-bus))
   (def source (s/stream))
   (def sink (s/stream))

@@ -9,9 +9,10 @@
 
 (enable-console-print!)
 
-(defn state
+(defn db
   []
-  (pprint @(rf/subscribe [:game])))
+  (println "DB")
+  (pprint @(rf/subscribe [:state])))
 
 (defn ^:export run
   []
