@@ -1,0 +1,53 @@
+.no-space {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    margin-left: 0;
+    margin-right: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+h5 {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    margin-left: 0;
+    margin-right: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.red-text {
+    color: red;
+}
+
+.black {
+    color: white;
+    background-color: black;
+}
+
+.white {
+    background-color: white;
+}
+
+.green {
+    color: white;
+    background-color: green;
+}
+
+.blue {
+    color: white;
+    background-color: blue;
+}
+
+.yellow {
+    background-color: yellow;
+}
+
+.red {
+    color: white;
+    background-color: red;
+}

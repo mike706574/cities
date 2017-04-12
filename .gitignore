@@ -3,8 +3,10 @@
 /lib
 /classes
 /checkouts
-/resources/public/game
-/resources/public/menu
+/resources/public/game/js
+/resources/public/game/game.js
+/resources/public/menu/js
+/resources/public/menu.js
 pom.xml
 *.jar
 *.class
