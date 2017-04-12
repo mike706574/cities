@@ -26,6 +26,12 @@
   [conn message]
   (s/put! conn (encode message)))
 
+  (with-system
+    (let [mike-conn @(http/websocket-client "ws://localhost:10000/menu-websocket")]
+      (send! mike-conn "mike")
+      (send! mike-conn "ewaklfjkaw")
+      ))
+
 (deftest inviting
   (with-system
     (let [mike-conn @(http/websocket-client "ws://localhost:10000/menu-websocket")
@@ -54,16 +60,24 @@
 
       (send! abby-conn {:menu/status :accept-invite :menu/player "mike"})
 
-      (is (= {:menu/status :game-created,
-              :menu/game {::game/id "6849",
-                          ::game/round-number 0,
-                          ::game/turn "mike",
-                          ::game/opponent "mike"}}
-             (receive! abby-conn)))
+      (let [{:keys [:menu/status :menu/game]} (receive! abby-conn)
+            {:keys [::game/id
+                    ::game/round-number
+                    ::game/turn
+                    ::game/opponent]} game]
+        (is (= status :game-created))
+        (is (= "1" id))
+        (is (= 1 round-number))
+        (is (contains? #{"mike" "abby"} turn))
+        (is "mike" opponent))
 
-      (is (= {:menu/status :game-created,
-              :menu/game {::game/id "6849",
-                          ::game/round-number 0,
-                          ::game/turn "mike",
-                          ::game/oppoent "abby"}}
-             (receive! mike-conn))))))
+      (let [{:keys [:menu/status :menu/game]} (receive! mike-conn)
+            {:keys [::game/id
+                    ::game/round-number
+                    ::game/turn
+                    ::game/opponent]} game]
+        (is (= status :game-created))
+        (is (= "1" id))
+        (is (= 1 round-number))
+        (is (contains? #{"mike" "abby"} turn))
+        (is "abby" opponent)))))

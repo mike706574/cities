@@ -25,7 +25,7 @@
                           ::game/players
                           ::game/round]} state]
               [id {::game/id id
-                   ::game/round-number (count past-rounds)
+                   ::game/round-number (inc (count past-rounds))
                    ::game/opponent (first (filter #(not= % player) players))
                    ::game/turn (::game/turn round)}]))]
     (into {} (comp (filter playing?)
@@ -96,8 +96,7 @@
       [[:publish player {:menu/status :no-invite-to-accept
                          :menu/invite invite}]]
       ;; Invite found - create a game
-      [[:create-game invite]
-       [:remove-invite invite]])))
+      [[:create-game invite]])))
 
 (defmethod process-message :cancel-invite
   [{invites :invites} player {opponent :menu/player}]
@@ -120,7 +119,6 @@
 (defmulti perform-action
   "Given an action, perform it."
   (fn [deps [action-id :as action]]
-
     action-id))
 
 (defmethod perform-action :publish
@@ -128,14 +126,15 @@
   (bus/publish! player-bus player message))
 
 (defmethod perform-action :create-game
-  [{games :games player-bus :player-bus} [_ invite]]
+  [{games :games invites :invites player-bus :player-bus} [_ invite]]
   (let [[player-1 player-2] invite
-        game-id (str (rand-int 10000))
+        game-id (str (inc (count @games)))
         game-state (game/rand-game invite)
         turn (::game/turn (::game/round game-state))
         game-base {::game/id game-id
-                   ::game/round-number 0
+                   ::game/round-number 1
                    ::game/turn turn}]
+    (alter invites disj invite)
     (alter games assoc game-id game-state)
     (bus/publish! player-bus player-1
                   {:menu/status :game-created
@@ -154,18 +153,22 @@
 
 (defn consume-message
   [{:keys [games invites] :as deps} player raw-message]
-  (try
-    (log/debug "Consuming raw message:" raw-message)
-    (let [parsed-message (decode raw-message)]
-      (log/debug (str "Parsed message: " parsed-message))
-      (dosync
-       (let [actions (process-message {:games @games
-                                       :invites @invites} player parsed-message)]
-         (log/debug (str "Performing " (count actions) " actions."))
-         (doseq [action actions]
-           (log/debug (str "Performing action: " action))
-           (perform-action deps action)))))
-    (catch Exception ex (log/error ex))))
+  (let [message-id (uuid)]
+    (try
+      (log/trace (str "Consuming message " message-id) ".")
+      (let [parsed-message (decode raw-message)]
+        (log/trace (str "Parsed message: " parsed-message))
+        (dosync
+         (let [actions (process-message {:games @games
+                                         :invites @invites} player parsed-message)]
+           (log/trace (str "Performing " (count actions) " actions."))
+           (doseq [action actions]
+             (log/trace (str "Performing action: " action))
+             (perform-action deps action)))))
+      (log/debug (str "Successfully consume messaged " message-id "."))
+      (catch Exception ex
+        (log/error "Exception thrown while consuming message " message-id ".")
+        (log/error ex)))))
 
 (def non-websocket-request
   {:status 400
