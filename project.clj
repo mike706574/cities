@@ -1,4 +1,4 @@
-(defproject org.clojars.mike706574/misplaced-villages-server "0.0.1-SNAPSHOT"
+(defproject org.clojars.mike706574/misplaced-villages-webapp "0.0.1-SNAPSHOT"
   :description "Describe me!"
   :url "https://github.com/mike706574/misplaced-villages-server"
   :license {:name "Eclipse Public License"
@@ -6,6 +6,9 @@
   :dependencies [[org.clojure/clojure "1.9.0-alpha15"]
                  [com.stuartsierra/component "0.3.2"]
                  [org.clojure/core.async "0.3.442"]
+
+                 ;; Game
+                 [org.clojars.mike706574/misplaced-villages "0.0.1-SNAPSHOT"]
 
                  ;; Utility
                  [manifold "0.1.6"]
@@ -16,17 +19,16 @@
 
                  ;; Web
                  [aleph "0.4.3"]
-                 [ring-cors "0.1.9"]
+                 [ring/ring-anti-forgery "1.0.1"]
+                 [ring/ring-defaults "0.2.3"]
                  [compojure "1.5.2"]
+                 [com.cemerick/friend "0.3.0-SNAPSHOT"]
+                 [selmer "1.10.7"]
 
                  ;; ClojureScript
                  [org.clojure/clojurescript "1.9.495"]
                  [reagent "0.6.1"]
-                 [reagent-utils "0.2.1"]
-                 [re-frame "0.9.2"]
-                 [day8.re-frame/http-fx "0.1.3"]
-                 [cljs-ajax "0.5.8"]
-                 [org.clojars.mike706574/misplaced-villages "0.0.1-SNAPSHOT"]]
+                 [re-frame "0.9.2"]]
 
   :source-paths ["src/clj"]
   :test-paths ["test/clj"]
@@ -34,43 +36,58 @@
             [cider/cider-nrepl "0.14.0"]
             [org.clojure/tools.nrepl "0.2.12"]
             [lein-figwheel "0.5.9"]]
-  :hooks [leiningen.cljsbuild]
+;;  :hooks [leiningen.cljsbuild]
   :profiles {:dev {:source-paths ["dev"]
                    :target-path "target/dev"
-                   :dependencies [
-                                  [org.clojure/test.check "0.9.0"]
+                   :dependencies [[org.clojure/test.check "0.9.0"]
                                   [org.clojure/tools.namespace "0.2.11"]
-                                  [clj-http "3.4.1"]
                                   [com.cemerick/piggieback "0.2.1"]
                                   [figwheel-sidecar "0.5.9"]]
                    :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
                    :cljsbuild
                    {:builds
-                    {:game
-                     {:figwheel {:on-jsload "misplaced-villages-client.game.core/run"
-                                 :websocket-host "192.168.1.141"
-                                 }
-                      :compiler {:main "misplaced-villages-client.game.core"
-                                 :asset-path "game"
+                    {:dev-game
+                     {:figwheel {:on-jsload "misplaced-villages.client.game.core/reinitialize"
+                                 :websocket-host "192.168.1.141"}
+                      :compiler {:main "misplaced-villages.client.game.core"
+                                 :asset-path "js"
                                  :optimizations :none
                                  :source-map true
                                  :source-map-timestamp true}}
-                     :menu
-                     {:figwheel {:on-jsload "misplaced-villages-client.menu.core/run"
-                                 :websocket-host "192.168.1.141"
-                                 }
-                      :compiler {:main "misplaced-villages-client.menu.core"
-                                 :asset-path "menu"
+                     :production-game
+                     {:compiler {:optimizations :advanced
+                                 :elide-asserts true
+                                 :pretty-print false}}
+                     :dev-menu
+                     {:figwheel {:on-jsload "misplaced-villages.client.menu.core/sync"
+                                 :websocket-host "192.168.1.141"}
+                      :compiler {:main "misplaced-villages.client.menu.core"
+                                 :asset-path "menu/js"
                                  :optimizations :none
                                  :source-map true
-                                 :source-map-timestamp true}}}}}}
-  :cljsbuild {:builds {:game {:source-paths ["src/cljs"]
-                              :compiler {:output-dir "resources/public/game"
-                                         :output-to "resources/public/game/core.js"}}
-                       :menu {:source-paths ["src/cljs"]
-                              :compiler {:output-dir "resources/public/menu/"
-                                         :output-to "resources/public/menu/core.js"}}}}
+                                 :source-map-timestamp true}}
+                     :production-menu
+                     {:compiler {:optimizations :advanced
+                                 :elide-asserts true
+                                 :pretty-print false}}}}}}
+  :cljsbuild {:builds {:dev-game {:source-paths ["src-cljs-game"]
+                                  :compiler {:output-dir "resources/public/game/js"
+                                             :output-to "resources/public/game/game.js"}}
+                       :production-game {:source-paths ["src-cljs-game"]
+                                         :compiler {:output-dir "target/game"
+                                                    :output-to "resources/public/game/game.js"}}
+                       :dev-menu {:source-paths ["src-cljs-menu"]
+                                  :compiler {:output-dir "resources/public/menu/js"
+                                             :output-to "resources/public/menu.js"}}
+                       :production-menu {:source-paths ["src-cljs-menu"]
+                                         :compiler {:output-dir "target/menu"
+                                                    :output-to "resources/public/menu.js"}}}}
   :figwheel {:repl false
              :http-server-root "public"}
-  :clean-targets ^{:protect false} ["resources/public/game"
-                                    "resources/public/menu"])
+  :clean-targets ^{:protect false} ["resources/public/game/game.js"
+                                    "resources/public/game/js"
+                                    "resources/public/menu.js"
+                                    "resources/public/menu/js"]
+  :aliases {"production-client" ["do" "clean"
+                                 ["cljsbuild" "once" "production-menu"]
+                                 ["cljsbuild" "once" "production-game"]]})

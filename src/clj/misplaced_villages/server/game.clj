@@ -1,4 +1,4 @@
-(ns misplaced-villages-server.action
+(ns misplaced-villages.server.game
   (:require [aleph.http :as http]
             [clojure.edn :as edn]
             [clojure.spec :as spec]
@@ -11,7 +11,6 @@
             [misplaced-villages.game :as game]
             [misplaced-villages.move :as move]
             [misplaced-villages.score :as score]
-            [misplaced-villages-server.service :as service]
             [misplaced-villages.player :as player]
             [taoensso.timbre :as log]))
 

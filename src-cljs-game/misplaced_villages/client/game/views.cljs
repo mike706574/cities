@@ -1,9 +1,6 @@
-(ns misplaced-villages-client.game.views
+(ns misplaced-villages.client.game.views
   (:require [clojure.string :as str]
-            [cljs.pprint :refer [pprint]]
-            [reagent.core :as reagent]
             [re-frame.core :as rf]
-            [day8.re-frame.http-fx]
             [misplaced-villages.game :as game]
             [misplaced-villages.card :as card]
             [misplaced-villages.player :as player]
@@ -21,8 +18,8 @@
   []
   (let [player @(rf/subscribe [:player])]
     [:div
-     [button "Abby" #(rf/dispatch [:play "Abby"])]
-     [button "Mike" #(rf/dispatch [:play "Mike"])]]))
+     [button "abby" #(rf/dispatch [:initialize "abby" "1"])]
+     [button "mike" #(rf/dispatch [:initialize "mike" "1"])]]))
 
 (defn active-hand-view
   [hand]
@@ -142,8 +139,6 @@
                     " | Cards remaining: " draw-count))
     (log/debug "Hand:" (map card/str-card @(rf/subscribe [:hand])))
     [:div
-     (button "Select Player" #(rf/dispatch [:initialize]))
-     (button "Refresh" #(rf/dispatch [:play player]))
      [:h3 "Game"]
      [:p (str "You are " player ". It's " (if turn? "your" (str opponent "'s"))
               " turn. There are " draw-count " cards remaining.")]
@@ -198,12 +193,9 @@
                  round-scores)]]
        [:ul (map-indexed round-summary past-rounds)]])))
 
-(defn loading
+(defn splash
   []
-  [:div
-   [:span "Loading..."]
-   [:span @(rf/subscribe [:status-message])]
-   (button "Refresh" #(rf/dispatch [:initialize]))])
+  [:p @(rf/subscribe [:status-message])])
 
 (defn error
   []
@@ -213,16 +205,11 @@
 
 (defn app
   []
-  (let [loading?  @(rf/subscribe [:loading?])
-        screen @(rf/subscribe [:screen])
-        status-message @(rf/subscribe [:status-message])]
-    [:div
-     [:p
-      (if status-message status-message "No status message set.")
-      (when loading? " Loading...") ]
-     (case screen
-       :player-selection [player-selection]
-       :game [game]
-       :game-over [game-over]
-       :error [error]
-       (throw (js/Error. (str "Invalid screen: " screen))))]))
+  (let [screen @(rf/subscribe [:screen])]
+    (case screen
+      :splash [splash]
+      :player-selection [player-selection]
+      :game [game]
+      :game-over [game-over]
+      :error [error]
+      (throw (js/Error. (str "Invalid screen: " screen))))))

@@ -1,4 +1,4 @@
-(ns misplaced-villages-client.menu.subs
+(ns misplaced-villages.client.menu.subs
   (:require [re-frame.core :as rf]))
 
 (rf/reg-sub
@@ -27,9 +27,14 @@
    (:menu/games db)))
 
 (rf/reg-sub
- :invitations
+ :received-invites
  (fn [db _]
-   (:menu/invitations db)))
+   (:menu/received-invites db)))
+
+(rf/reg-sub
+ :sent-invites
+ (fn [db _]
+   (:menu/sent-invites db)))
 
 (rf/reg-sub
  :messages

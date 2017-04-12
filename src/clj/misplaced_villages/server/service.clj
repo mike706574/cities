@@ -1,4 +1,4 @@
-(ns misplaced-villages-server.service
+(ns misplaced-villages.server.service
   (:require [com.stuartsierra.component :as component]
             [taoensso.timbre :as log]
             [aleph.http :as aleph-http])
