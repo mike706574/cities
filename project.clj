@@ -11,6 +11,7 @@
                  [org.clojars.mike706574/misplaced-villages "0.0.1-SNAPSHOT"]
 
                  ;; Utility
+                 [com.cognitect/transit-clj "0.8.300"]
                  [manifold "0.1.6"]
                  [byte-streams "0.2.2"]
 
@@ -27,6 +28,7 @@
 
                  ;; ClojureScript
                  [org.clojure/clojurescript "1.9.495"]
+                 [com.cognitect/transit-cljs "0.8.239"]
                  [reagent "0.6.1"]
                  [re-frame "0.9.2"]]
 

@@ -47,4 +47,6 @@
   {:pre [(integer? port)
          (> port 0)
          (fn? handler)]}
-  (component/using (map->AlephService (assoc config :handler handler)) []))
+  (component/using
+   (map->AlephService (assoc config :handler handler))
+   [:connection-manager]))

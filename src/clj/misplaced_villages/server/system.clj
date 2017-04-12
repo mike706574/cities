@@ -12,6 +12,7 @@
             [misplaced-villages.server.game :as game-resource]
             [misplaced-villages.server.menu :as menu-resource]
             [misplaced-villages.server.service :as service]
+            [misplaced-villages.server.connection-manager :as connection-manager]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.util.response :as response]
             [selmer.parser :as selmer]
@@ -80,46 +81,16 @@
         :workflows [(workflows/interactive-form)]})
       (wrap-defaults site-defaults)))
 
-(defonce games (ref {"1" (game/rand-game ["mike" "abby"])}))
-(defonce game-bus (bus/event-bus))
-(defonce player-bus (bus/event-bus))
-
 (defn system [config]
   (let [invites (ref #{})
+        games (ref {})
+        conns (atom {})
         deps {:games games
               :invites invites
-              :game-bus game-bus
-              :player-bus player-bus}]
+              :game-bus (bus/event-bus)
+              :player-bus (bus/event-bus)
+              :connections conns}]
     {:app (service/aleph-service config (handler deps))
+     :connection-manager (connection-manager/connection-manager conns)
      :games games
      :invites invites}))
-
-(comment
-  @games
-  (def bus (bus/event-bus))
-  (def source (s/stream))
-  (def sink (s/stream))
-  (def sink2 (s/stream))
-  (s/connect
-   (bus/subscribe bus 1)
-   sink)
-
-  (s/connect
-   (bus/subscribe bus 1)
-   sink2)
-
-  (s/consume
-   #(bus/publish! bus 1 %)
-   source)
-
-  (s/consume
-   #(println "FROM SINK:" %)
-   sink)
-  (s/consume
-   #(println "FROM SINK2:" %)
-   sink2)
-
-  (s/put! source "FObar331212")
-
-
-  )

@@ -1,8 +1,6 @@
 (ns misplaced-villages.server.game
   (:require [aleph.http :as http]
-            [clojure.edn :as edn]
             [clojure.spec :as spec]
-            [clojure.spec.test :as stest]
             [clojure.string :as str]
             [manifold.stream :as s]
             [manifold.deferred :as d]
@@ -12,7 +10,10 @@
             [misplaced-villages.move :as move]
             [misplaced-villages.score :as score]
             [misplaced-villages.player :as player]
+            [misplaced-villages.server.message :refer [encode decode]]
             [taoensso.timbre :as log]))
+
+(defn uuid [] (str (java.util.UUID/randomUUID)))
 
 (defn player-model
   [state player]
@@ -59,7 +60,7 @@
 (defn process-action
   [games game-id player-id action-str]
   (let [game (get @games game-id)
-        action (edn/read-string action-str)
+        action (decode action-str)
         response (cond
                    (nil? game) {::game/status :no-game}
                    (nil? player-id) {::game/status :no-player}
@@ -70,45 +71,45 @@
                      ::player/id player-id})))
 
 (defn handle-action
-  [games bus req]
+  [{:keys [connections games game-bus]} req]
   (d/let-flow [conn (d/catch
                         (http/websocket-connection req)
                         (fn [_] nil))]
     (if-not conn
       non-websocket-request
-      (d/let-flow [id-message (s/take! conn)
-                   id-body (edn/read-string id-message)
-                   {game-id ::game/id
-                    player-id ::player/id} id-body]
-        (println (str "Player " player-id " connected to game " game-id "."))
-        ;; Give player current game state
-        (s/put! conn (pr-str {::game/status :connected
-                              ::game/state (player-model
-                                            (get @games game-id)
-                                            player-id)}))
-        (println "Here!")
-        ;; Connect player to bus
-        (s/connect-via
-         (bus/subscribe bus game-id)
-         (fn [message]
-           (println (str "Preparing message for " player-id "..."))
-           (s/put! conn (pr-str (update-existing
-                                 message
-                                 ::game/state
-                                 #(player-model % player-id)))))
-         conn)
-        ;; Process all player actions
-        (s/consume
-         #(bus/publish! bus game-id %)
-          (->> conn
-              (s/map (partial process-action games game-id player-id))
-              (s/buffer 100)))
-        ;; Publish player connection
-        (bus/publish! bus game-id
-                      {::game/status :player-connected
-                       ::player/id player-id})
-        {:status 101}))))
+      (let [conn-id (uuid)]
+        (log/debug (str "Connection " conn-id " established."))
+        (d/let-flow [id-body (decode (s/take! conn))
+                     {game-id ::game/id
+                      player-id ::player/id} id-body]
+          (log/debug (str "Player " player-id " connected to game " game-id "."))
+          ;; Give player current game state
+          (s/put! conn (encode {::game/status :connected
+                                ::game/state (player-model
+                                              (get @games game-id)
+                                              player-id)}))
+          ;; Connect player to bus
+          (s/connect-via
+           (bus/subscribe game-bus game-id)
+           (fn [message]
+             (log/debug (str "Preparing message for " player-id "..."))
+             (s/put! conn (encode (update-existing
+                                   message
+                                   ::game/state
+                                   #(player-model % player-id)))))
+           conn)
+          ;; Process all player actions
+          (s/consume
+           #(bus/publish! game-bus game-id %)
+           (->> conn
+                (s/map (partial process-action games game-id player-id))
+                (s/buffer 100)))
+          ;; Publish player connection
+          (bus/publish! game-bus game-id
+                        {::game/status :player-connected
+                         ::player/id player-id})
+          {:status 101})))))
 
 (defn handler
-  [games bus]
-  (partial handle-action games bus))
+  [deps]
+  (partial handle-action deps))

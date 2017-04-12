@@ -1,6 +1,5 @@
 (ns misplaced-villages.server.menu
   (:require [aleph.http :as http]
-            [clojure.edn :as edn]
             [clojure.spec :as spec]
             [clojure.spec.test :as stest]
             [clojure.string :as str]
@@ -12,7 +11,10 @@
             [misplaced-villages.move :as move]
             [misplaced-villages.score :as score]
             [misplaced-villages.player :as player]
+            [misplaced-villages.server.message :refer [encode decode]]
             [taoensso.timbre :as log]))
+
+(defn uuid [] (str (java.util.UUID/randomUUID)))
 
 (defn games-for
   [games player]
@@ -118,7 +120,7 @@
 (defmulti perform-action
   "Given an action, perform it."
   (fn [deps [action-id :as action]]
-    (log/debug (str "Performing action: " action))
+
     action-id))
 
 (defmethod perform-action :publish
@@ -154,14 +156,14 @@
   [{:keys [games invites] :as deps} player raw-message]
   (try
     (log/debug "Consuming raw message:" raw-message)
-    (let [parsed-message (edn/read-string raw-message)]
+    (let [parsed-message (decode raw-message)]
       (log/debug (str "Parsed message: " parsed-message))
       (dosync
        (let [actions (process-message {:games @games
-                                       :invites @invites} player (edn/read-string raw-message))]
+                                       :invites @invites} player parsed-message)]
          (log/debug (str "Performing " (count actions) " actions."))
          (doseq [action actions]
-           (println "ACT ACT:" action)
+           (log/debug (str "Performing action: " action))
            (perform-action deps action)))))
     (catch Exception ex (log/error ex))))
 
@@ -170,44 +172,45 @@
    :headers {"content-type" "application/text"}
    :body "Expected a websocket request."})
 
-(defn uuid [] (str (java.util.UUID/randomUUID)))
-
 (defn handle
-  [{:keys [games invites game-bus player-bus] :as deps} req]
+  [{:keys [games invites game-bus player-bus connections] :as deps} req]
   (d/let-flow [conn (d/catch
                         (http/websocket-connection req)
                         (fn [_] nil))]
     (if-not conn
       non-websocket-request
-      (d/let-flow [conn-id (uuid)
-                   player (s/take! conn) ;; TODO: Timeout.
-                   state (state-for @games @invites player)
-                   state-message {:menu/status :state :menu/state state}]
-        (log/debug (str "Initial menu state for " player ": " (with-out-str (clojure.pprint/pprint state))))
-        ;; Give player current menu state
-        (s/put! conn (pr-str state-message))
-        ;; Game updates
-        (doseq [game (:menu/games state)]
+      (let [conn-id (uuid)]
+        (swap! connections assoc conn-id conn)
+        (log/debug (str "Connection " conn-id " established."))
+        (d/let-flow [conn-id (uuid)
+                     player (decode @(s/take! conn)) ;; TODO: Timeout.
+                     state (state-for @games @invites player)
+                     state-message {:menu/status :state :menu/state state}]
+          (log/debug (str "Initial menu state for " player ": " (with-out-str (clojure.pprint/pprint state))))
+          ;; Give player current menu state
+          (s/put! conn (encode state-message))
+          ;; Game updates
+          (doseq [game (:menu/games state)]
+            (s/connect-via
+             (bus/subscribe game-bus (::game/id game))
+             (fn [message]
+               (log/debug (str "Preparing game message for " player "... not really though.")))
+             conn))
+          ;; Player updates
           (s/connect-via
-           (bus/subscribe game-bus (::game/id game))
+           (bus/subscribe player-bus player)
            (fn [message]
-             (log/debug (str "Preparing game message for " player "... not really though.")))
-           conn))
-        ;; Player updates
-        (s/connect-via
-         (bus/subscribe player-bus player)
-         (fn [message]
-           (log/debug (str "Preparing player message for " player " [" conn-id "]"))
-           (log/debug "Message:" message)
-           (s/put! conn (pr-str message)))
-         conn)
-        ;; Consume messages from player
-        (s/consume (partial consume-message deps player) conn)
-        (log/debug (str "Player " player " ("
-                        (count (:menu/games state)) " games, "
-                        (count (:menu/sent-invites state)) " sent invites, "
-                        (count (:menu/received-invites state)) " received invites) connected [" conn-id "]"))
-        {:status 101}))))
+             (log/debug (str "Preparing player message for " player " [" conn-id "]"))
+             (log/debug "Message:" message)
+             (s/put! conn (encode message)))
+           conn)
+          ;; Consume messages from player
+          (s/consume (partial consume-message deps player) conn)
+          (log/debug (str "Player " player " ("
+                          (count (:menu/games state)) " games, "
+                          (count (:menu/sent-invites state)) " sent invites, "
+                          (count (:menu/received-invites state)) " received invites) connected [" conn-id "]"))
+          {:status 101})))))
 
 (defn handler
   [deps]

@@ -66,7 +66,6 @@
 (rf/reg-event-db
  :error
  (fn [db [_ message]]
-   (println (str "Error: " message))
    (assoc db
      :app/screen :error
      :app/error-message message)))
