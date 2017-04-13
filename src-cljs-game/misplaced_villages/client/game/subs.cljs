@@ -47,7 +47,7 @@
 (rf/reg-sub
  :opponent-expeditions
  (fn [{game :app/game player :app/player} _]
-   (get-in game [::game/round ::game/player-data player ::player/expeditions])))
+   (get-in game [::game/round ::game/player-data (game/opponent game player) ::player/expeditions])))
 
 (rf/reg-sub
  :draw-count

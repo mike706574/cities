@@ -62,7 +62,7 @@
                (selmer/render-file "templates/game.html" {:player name
                                                           :game-id id}))))
 
-       (GET "/game-websocket" [] (game-resource/handler games game-bus))
+       (GET "/game-websocket" [] (game-resource/handler deps))
 
        (GET "/menu-websocket" [] (menu-resource/handler deps))
 

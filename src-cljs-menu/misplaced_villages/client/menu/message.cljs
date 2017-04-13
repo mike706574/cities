@@ -66,3 +66,7 @@
     (-> db
         (update :menu/games assoc id game)
         (update :menu/messages conj (str "Game " id " created against " (::game/opponent game) ".")))))
+
+(defmethod handle :error
+  [db {error-message :menu/error-message}]
+  (assoc db :app/screen :error :app/error-message :error-message))

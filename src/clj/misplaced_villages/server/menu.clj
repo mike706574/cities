@@ -12,9 +12,8 @@
             [misplaced-villages.score :as score]
             [misplaced-villages.player :as player]
             [misplaced-villages.server.message :refer [encode decode]]
+            [misplaced-villages.server.util :as util]
             [taoensso.timbre :as log]))
-
-(defn uuid [] (str (java.util.UUID/randomUUID)))
 
 (defn games-for
   [games player]
@@ -138,7 +137,7 @@
     (alter games assoc game-id game-state)
     (bus/publish! player-bus player-1
                   {:menu/status :game-created
-                   :menu/game (assoc game-base ::game/oppoent player-2)})
+                   :menu/game (assoc game-base ::game/opponent player-2)})
     (bus/publish! player-bus player-2
                   {:menu/status :game-created
                    :menu/game (assoc game-base ::game/opponent player-1)})))
@@ -152,8 +151,8 @@
   (alter invites disj invite))
 
 (defn consume-message
-  [{:keys [games invites] :as deps} player raw-message]
-  (let [message-id (uuid)]
+  [{:keys [games invites player-bus] :as deps} player raw-message]
+  (let [message-id (util/uuid)]
     (try
       (log/trace (str "Consuming message " message-id) ".")
       (let [parsed-message (decode raw-message)]
@@ -168,7 +167,9 @@
       (log/debug (str "Successfully consume messaged " message-id "."))
       (catch Exception ex
         (log/error "Exception thrown while consuming message " message-id ".")
-        (log/error ex)))))
+        (log/error ex)
+        (bus/publish! player-bus player {:menu/status :error
+                                         :menu/error-message (.getMessage ex)})))))
 
 (def non-websocket-request
   {:status 400
@@ -182,11 +183,10 @@
                         (fn [_] nil))]
     (if-not conn
       non-websocket-request
-      (let [conn-id (uuid)]
+      (let [conn-id (util/uuid)]
         (swap! connections assoc conn-id conn)
         (log/debug (str "Connection " conn-id " established."))
-        (d/let-flow [conn-id (uuid)
-                     player (decode @(s/take! conn)) ;; TODO: Timeout.
+        (d/let-flow [player (decode @(s/take! conn)) ;; TODO: Timeout and error handling.
                      state (state-for @games @invites player)
                      state-message {:menu/status :state :menu/state state}]
           (log/debug (str "Initial menu state for " player ": " (with-out-str (clojure.pprint/pprint state))))

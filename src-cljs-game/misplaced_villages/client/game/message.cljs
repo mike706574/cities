@@ -6,7 +6,6 @@
 
 (defmulti handle
   (fn [db message]
-    (log/debug "Received message:" message)
     (::game/status message)))
 
 (defmethod handle :connected

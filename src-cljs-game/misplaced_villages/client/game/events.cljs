@@ -1,15 +1,24 @@
 (ns misplaced-villages.client.game.events
-  (:require [re-frame.core :as rf]
+  (:require [cognitect.transit :as transit]
             [misplaced-villages.game :as game]
             [misplaced-villages.player :as player]
             [misplaced-villages.move :as move]
             [misplaced-villages.client.game.message :as message]
+            [re-frame.core :as rf]
             [taoensso.timbre :as log]))
+
+(defn decode
+  [message]
+  (transit/read (transit/reader :json) message))
+
+(defn encode
+  [message]
+  (transit/write (transit/writer :json) message))
 
 (defn handle-socket-event
   [event]
   (let [data (.-data event)
-        message (cljs.reader/read-string data)]
+        message (decode data)]
     (rf/dispatch [:message message])))
 
 (defn connect
@@ -35,7 +44,7 @@
  (fn [{:keys [:app/socket :app/player :app/game-id] :as db} _]
    (log/debug "Socket open! Authenticating as " player " for game " game-id ".")
    (set! (.-onmessage socket) handle-socket-event)
-   (.send socket (pr-str {::player/id player
+   (.send socket (encode {::player/id player
                           ::game/id game-id}))
    (assoc db :app/status-message "Socket open.")))
 
@@ -108,7 +117,7 @@
                          card
                          destination source)]
      (log/debug "Sending move:" move)
-     (.send socket (pr-str move))
+     (.send socket (encode move))
      (assoc db
        :app/card nil
        :app/destination :expedition

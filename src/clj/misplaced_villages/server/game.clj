@@ -11,9 +11,8 @@
             [misplaced-villages.score :as score]
             [misplaced-villages.player :as player]
             [misplaced-villages.server.message :refer [encode decode]]
+            [misplaced-villages.server.util :as util]
             [taoensso.timbre :as log]))
-
-(defn uuid [] (str (java.util.UUID/randomUUID)))
 
 (defn player-model
   [state player]
@@ -77,9 +76,9 @@
                         (fn [_] nil))]
     (if-not conn
       non-websocket-request
-      (let [conn-id (uuid)]
+      (let [conn-id (util/uuid)]
         (log/debug (str "Connection " conn-id " established."))
-        (d/let-flow [id-body (decode (s/take! conn))
+        (d/let-flow [id-body (decode @(s/take! conn))
                      {game-id ::game/id
                       player-id ::player/id} id-body]
           (log/debug (str "Player " player-id " connected to game " game-id "."))

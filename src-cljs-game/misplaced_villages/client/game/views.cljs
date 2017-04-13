@@ -38,7 +38,8 @@
           (card/str-card card)]])
       hand)]))
 
-(defn inactive-hand-view
+
+(defn inline-cards
   [hand]
   [:ul.no-space
    (map-indexed
@@ -102,7 +103,6 @@
 
 (defn source-view
   [available-discards]
-  (log/debug "Available discards:" available-discards)
   (let [source @(rf/subscribe [:source])]
     [:ul.no-space
      [:li {:key :draw-pile
@@ -144,13 +144,20 @@
               " turn. There are " draw-count " cards remaining.")]
      (if turn?
        [:div
+        [:h5 "Hand"]
         (active-hand-view @(rf/subscribe [:hand]))
+        [:h5 "Destination"]
         [destination-view]
+        [:h5 "Sources"]
         [source-view @(rf/subscribe [:available-discards])]
         (button (str "Make Move") #(rf/dispatch [:move]))
         (when-let [move-message @(rf/subscribe [:move-message])]
           [:p.red-text move-message])]
-       (inactive-hand-view @(rf/subscribe [:hand])))
+       [:div
+        [:h5 "Hand"]
+        (inline-cards @(rf/subscribe [:hand]))
+        [:h5 "Discards"]
+        (inline-cards @(rf/subscribe [:available-discards]))])
      [:h5 "Your Expeditions"]
      (expedition-table @(rf/subscribe [:expeditions]))
      [:h5 (str opponent "'s Expeditions")]

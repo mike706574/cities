@@ -26,12 +26,6 @@
   [conn message]
   (s/put! conn (encode message)))
 
-  (with-system
-    (let [mike-conn @(http/websocket-client "ws://localhost:10000/menu-websocket")]
-      (send! mike-conn "mike")
-      (send! mike-conn "ewaklfjkaw")
-      ))
-
 (deftest inviting
   (with-system
     (let [mike-conn @(http/websocket-client "ws://localhost:10000/menu-websocket")
