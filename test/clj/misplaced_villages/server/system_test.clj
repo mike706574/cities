@@ -6,7 +6,8 @@
             [manifold.deferred :as d]
             [misplaced-villages.game :as game]
             [misplaced-villages.server.system :as system]
-            [misplaced-villages.server.message :refer [encode decode]]))
+            [misplaced-villages.server.message :refer [encode decode]]
+            [taoensso.timbre :as log]))
 
 (def config {:id "test" :port 10000})
 
@@ -25,6 +26,17 @@
 (defn send!
   [conn message]
   (s/put! conn (encode message)))
+
+(comment
+  (try
+    (with-system
+      (let [mike-conn @(http/websocket-client "ws://localhost:10000/menu-websocket")]
+        (send! mike-conn "mike")
+        (receive! mike-conn)))
+    (catch Exception ex
+      (log/debug (.getCause ex))))
+
+  )
 
 (deftest inviting
   (with-system

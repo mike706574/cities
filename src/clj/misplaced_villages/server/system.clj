@@ -12,7 +12,7 @@
             [misplaced-villages.server.game :as game-resource]
             [misplaced-villages.server.menu :as menu-resource]
             [misplaced-villages.server.service :as service]
-            [misplaced-villages.server.connection-manager :as connection-manager]
+            [misplaced-villages.server.connection :as conn]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.util.response :as response]
             [selmer.parser :as selmer]
@@ -85,12 +85,14 @@
   (let [invites (ref #{})
         games (ref {})
         conns (atom {})
+        conn-manager (conn/manager conns)
         deps {:games games
               :invites invites
               :game-bus (bus/event-bus)
               :player-bus (bus/event-bus)
-              :connections conns}]
-    {:app (service/aleph-service config (handler deps))
-     :connection-manager (connection-manager/connection-manager conns)
-     :games games
-     :invites invites}))
+              :conn-manager conn-manager}]
+    {:games games
+     :invites invites
+     :conn-manager conn-manager
+     :handler (handler deps)
+     :app (service/aleph-service config)}))

@@ -11,6 +11,7 @@
             [misplaced-villages.move :as move]
             [misplaced-villages.score :as score]
             [misplaced-villages.player :as player]
+            [misplaced-villages.server.connection :as conn]
             [misplaced-villages.server.message :refer [encode decode]]
             [misplaced-villages.server.util :as util]
             [taoensso.timbre :as log]))
@@ -177,43 +178,41 @@
    :body "Expected a websocket request."})
 
 (defn handle
-  [{:keys [games invites game-bus player-bus connections] :as deps} req]
+  [{:keys [games invites game-bus player-bus conn-manager] :as deps} req]
   (d/let-flow [conn (d/catch
                         (http/websocket-connection req)
                         (fn [_] nil))]
     (if-not conn
       non-websocket-request
-      (let [conn-id (util/uuid)]
-        (swap! connections assoc conn-id conn)
-        (log/debug (str "Connection " conn-id " established."))
-        (d/let-flow [player (decode @(s/take! conn)) ;; TODO: Timeout and error handling.
-                     state (state-for @games @invites player)
-                     state-message {:menu/status :state :menu/state state}]
-          (log/debug (str "Initial menu state for " player ": " (with-out-str (clojure.pprint/pprint state))))
-          ;; Give player current menu state
-          (s/put! conn (encode state-message))
-          ;; Game updates
-          (doseq [game (:menu/games state)]
-            (s/connect-via
-             (bus/subscribe game-bus (::game/id game))
-             (fn [message]
-               (log/debug (str "Preparing game message for " player "... not really though.")))
-             conn))
-          ;; Player updates
+      (d/let-flow [player (decode @(s/take! conn)) ;; TODO: Timeout and error handling.
+                   state (state-for @games @invites player)
+                   state-message {:menu/status :state :menu/state state}
+                   conn-id (conn/add! conn-manager player :menu conn)]
+        (log/debug (str "Player " player " connected to menu [" conn-id "]"))
+        ;; Give player current menu state
+        (s/put! conn (encode state-message))
+        ;; Game updates
+        (doseq [game (:menu/games state)]
           (s/connect-via
-           (bus/subscribe player-bus player)
+           (bus/subscribe game-bus (::game/id game))
            (fn [message]
-             (log/debug (str "Preparing player message for " player " [" conn-id "]"))
-             (log/debug "Message:" message)
-             (s/put! conn (encode message)))
-           conn)
-          ;; Consume messages from player
-          (s/consume (partial consume-message deps player) conn)
-          (log/debug (str "Player " player " ("
-                          (count (:menu/games state)) " games, "
-                          (count (:menu/sent-invites state)) " sent invites, "
-                          (count (:menu/received-invites state)) " received invites) connected [" conn-id "]"))
-          {:status 101})))))
+             (log/debug (str "Preparing game message for " player "... not really though.")))
+           conn))
+        ;; Player updates
+        (s/connect-via
+         (bus/subscribe player-bus player)
+         (fn [message]
+           (log/debug (str "Preparing player message for " player " [" conn-id "]"))
+           (log/debug "Message:" message)
+           (s/put! conn (encode message)))
+         conn)
+        ;; Consume messages from player
+        (s/consume (partial consume-message deps player) conn)
+        (log/debug (str "Player " player " ("
+                        (count (:menu/games state)) " games, "
+                        (count (:menu/sent-invites state)) " sent invites, "
+                        (count (:menu/received-invites state)) " received invites) connected [" conn-id "]"))
+        {:status 101}))))
 
 (defn handler
   [deps]

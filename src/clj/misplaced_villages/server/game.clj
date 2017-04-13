@@ -10,6 +10,7 @@
             [misplaced-villages.move :as move]
             [misplaced-villages.score :as score]
             [misplaced-villages.player :as player]
+            [misplaced-villages.server.connection :as conn]
             [misplaced-villages.server.message :refer [encode decode]]
             [misplaced-villages.server.util :as util]
             [taoensso.timbre :as log]))
@@ -70,7 +71,7 @@
                      ::player/id player-id})))
 
 (defn handle-action
-  [{:keys [connections games game-bus]} req]
+  [{:keys [conn-manager games game-bus]} req]
   (d/let-flow [conn (d/catch
                         (http/websocket-connection req)
                         (fn [_] nil))]
@@ -79,34 +80,34 @@
       (let [conn-id (util/uuid)]
         (log/debug (str "Connection " conn-id " established."))
         (d/let-flow [id-body (decode @(s/take! conn))
-                     {game-id ::game/id
-                      player-id ::player/id} id-body]
-          (log/debug (str "Player " player-id " connected to game " game-id "."))
+                     {game-id ::game/id player ::player/id} id-body
+                     conn-id (conn/add! conn-manager player :game conn)]
+          (log/debug (str "Player " player " connected to game " game-id ". [" conn-id "]"))
           ;; Give player current game state
           (s/put! conn (encode {::game/status :connected
                                 ::game/state (player-model
                                               (get @games game-id)
-                                              player-id)}))
+                                              player)}))
           ;; Connect player to bus
           (s/connect-via
            (bus/subscribe game-bus game-id)
            (fn [message]
-             (log/debug (str "Preparing message for " player-id "..."))
+             (log/debug (str "Preparing message for " player "..."))
              (s/put! conn (encode (update-existing
                                    message
                                    ::game/state
-                                   #(player-model % player-id)))))
+                                   #(player-model % player)))))
            conn)
           ;; Process all player actions
           (s/consume
            #(bus/publish! game-bus game-id %)
            (->> conn
-                (s/map (partial process-action games game-id player-id))
+                (s/map (partial process-action games game-id player))
                 (s/buffer 100)))
           ;; Publish player connection
           (bus/publish! game-bus game-id
                         {::game/status :player-connected
-                         ::player/id player-id})
+                         ::player/id player})
           {:status 101})))))
 
 (defn handler

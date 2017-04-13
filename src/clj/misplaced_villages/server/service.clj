@@ -1,7 +1,8 @@
 (ns misplaced-villages.server.service
   (:require [com.stuartsierra.component :as component]
             [taoensso.timbre :as log]
-            [aleph.http :as aleph-http])
+            [aleph.http :as aleph-http]
+            [misplaced-villages.server.connection :as conn])
   (:gen-class :main true))
 
 (defn- already-started
@@ -21,8 +22,9 @@
                                                                 :port port})))))
 
 (defn- stop-service
-  [{:keys [id port server] :as service}]
+  [{:keys [id port server conn-manager] :as service}]
   (log/info (str "Stopping " id " on port " port "..."))
+  (conn/close-all! conn-manager)
   (.close server)
   (dissoc service :server))
 
@@ -31,7 +33,7 @@
   (log/info (str id " already stopped."))
   service)
 
-(defrecord AlephService [id port handler server]
+(defrecord AlephService [id port handler server conn-manager]
   component/Lifecycle
   (start [this]
     (if server
@@ -43,10 +45,10 @@
       (already-stopped this))))
 
 (defn aleph-service
-  [{:keys [port] :as config} handler]
-  {:pre [(integer? port)
-         (> port 0)
-         (fn? handler)]}
+  [{:keys [id port] :as config}]
+  {:pre [(string? id)
+         (integer? port)
+         (> port 0)]}
   (component/using
-   (map->AlephService (assoc config :handler handler))
-   [:connection-manager]))
+   (map->AlephService config)
+   [:handler :conn-manager]))
