@@ -213,10 +213,15 @@
 (defn app
   []
   (let [screen @(rf/subscribe [:screen])]
-    (case screen
-      :splash [splash]
-      :player-selection [player-selection]
-      :game [game]
-      :game-over [game-over]
-      :error [error]
-      (throw (js/Error. (str "Invalid screen: " screen))))))
+    [:div
+     [:nav
+      [:a {:href "/"} "Menu"]
+      " "
+      [:a {:href "/logout"} "Logout"]]
+     (case screen
+       :splash [splash]
+       :player-selection [player-selection]
+       :game [game]
+       :game-over [game-over]
+       :error [error]
+       (throw (js/Error. (str "Invalid screen: " screen))))]))

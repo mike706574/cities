@@ -129,7 +129,7 @@
   [{games :games invites :invites player-bus :player-bus} [_ invite]]
   (let [[player-1 player-2] invite
         game-id (str (inc (count @games)))
-        game-state (game/rand-game invite)
+        game-state (game/rand-game invite 4)
         turn (::game/turn (::game/round game-state))
         game-base {::game/id game-id
                    ::game/round-number 1
@@ -165,7 +165,7 @@
            (doseq [action actions]
              (log/trace (str "Performing action: " action))
              (perform-action deps action)))))
-      (log/debug (str "Successfully consume messaged " message-id "."))
+      (log/debug (str "Successfully consumed message " message-id "."))
       (catch Exception ex
         (log/error "Exception thrown while consuming message " message-id ".")
         (log/error ex)

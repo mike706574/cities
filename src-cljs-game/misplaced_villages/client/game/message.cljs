@@ -9,15 +9,22 @@
     (::game/status message)))
 
 (defmethod handle :connected
-  [db {game ::game/state}]
-  (assoc db
-         :app/game game
-         :app/loading? false
-         :app/screen :game
-         :app/card nil
-         :app/destination :expedition
-         :app/source :draw-pile
-         :app/status-message "Connected."))
+  [db {state ::game/state}]
+  (log/debug "Connected!")
+  (if (game/game-over? state)
+    (assoc db
+           :app/game state
+           :app/loading? false
+           :app/screen :game-over
+           :app/status-message "Connected.")
+    (assoc db
+           :app/game state
+           :app/loading? false
+           :app/screen :game
+           :app/card nil
+           :app/destination :expedition
+           :app/source :draw-pile
+           :app/status-message "Connected.")))
 
 (defmethod handle :player-connected
   [db {player ::player/id :as message}]

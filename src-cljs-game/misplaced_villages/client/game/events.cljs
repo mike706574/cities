@@ -19,6 +19,7 @@
   [event]
   (let [data (.-data event)
         message (decode data)]
+    (log/trace "Received message:" message)
     (rf/dispatch [:message message])))
 
 (defn connect
@@ -68,21 +69,7 @@
 (rf/reg-event-db
  :connected
  (fn [db [_ message]]
-   (let [state (::game/state message)]
-     (if (game/game-over? state)
-       (assoc db
-              :app/game state
-              :app/loading? false
-              :app/screen :game-over
-              :app/status-message "Connected.")
-       (assoc db
-              :app/game state
-              :app/loading? false
-              :app/screen :game
-              :app/card nil
-              :app/destination :expedition
-              :app/source :draw-pile
-              :app/status-message "Connected.")))))
+))
 
 (rf/reg-event-db
  :player-change

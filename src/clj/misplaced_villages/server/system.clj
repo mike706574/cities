@@ -83,7 +83,7 @@
 
 (defn system [config]
   (let [invites (ref #{})
-        games (ref {})
+        games (ref {"1" (game/rand-game ["mike" "abby"] 4)})
         conns (atom {})
         conn-manager (conn/manager conns)
         deps {:games games

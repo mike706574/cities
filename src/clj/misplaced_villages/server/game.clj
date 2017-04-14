@@ -70,8 +70,20 @@
     (merge response {::game/id game-id
                      ::player/id player-id})))
 
+(defn consume-message
+  [{:keys [player-bus game-bus games]} player game-id message]
+  (let [message-id (util/uuid)]
+    (try
+      (log/trace (str "Consuming message " message-id) ".")
+      (bus/publish! game-bus game-id (process-action games game-id player message))
+      (catch Exception ex
+        (log/error "Exception thrown while consuming message " message-id ".")
+        (log/error ex)
+        (bus/publish! player-bus player {:menu/status :error
+                                         :menu/error-message (.getMessage ex)})))))
+
 (defn handle-action
-  [{:keys [conn-manager games game-bus]} req]
+  [{:keys [conn-manager games game-bus] :as deps} req]
   (d/let-flow [conn (d/catch
                         (http/websocket-connection req)
                         (fn [_] nil))]
@@ -92,18 +104,14 @@
           (s/connect-via
            (bus/subscribe game-bus game-id)
            (fn [message]
-             (log/debug (str "Preparing message for " player "..."))
+             (log/trace (str "Preparing message for " player "..."))
              (s/put! conn (encode (update-existing
                                    message
                                    ::game/state
                                    #(player-model % player)))))
            conn)
           ;; Process all player actions
-          (s/consume
-           #(bus/publish! game-bus game-id %)
-           (->> conn
-                (s/map (partial process-action games game-id player))
-                (s/buffer 100)))
+          (s/consume (partial consume-message deps player game-id) conn)
           ;; Publish player connection
           (bus/publish! game-bus game-id
                         {::game/status :player-connected

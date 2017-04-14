@@ -34,7 +34,8 @@
 
   :source-paths ["src/clj"]
   :test-paths ["test/clj"]
-  :plugins [[lein-cljsbuild "1.1.5"]
+  :plugins [[com.palletops/uberimage "0.4.1"]
+            [lein-cljsbuild "1.1.5"]
             [cider/cider-nrepl "0.14.0"]
             [org.clojure/tools.nrepl "0.2.12"]
             [lein-figwheel "0.5.9"]]
@@ -72,16 +73,16 @@
                      {:compiler {:optimizations :advanced
                                  :elide-asserts true
                                  :pretty-print false}}}}}}
-  :cljsbuild {:builds {:dev-game {:source-paths ["src-cljs-game"]
+  :cljsbuild {:builds {:dev-game {:source-paths ["src-cljs-shared" "src-cljs-game"]
                                   :compiler {:output-dir "resources/public/game/js"
                                              :output-to "resources/public/game/game.js"}}
-                       :production-game {:source-paths ["src-cljs-game"]
+                       :production-game {:source-paths ["src-cljs-shared" "src-cljs-game"]
                                          :compiler {:output-dir "target/game"
                                                     :output-to "resources/public/game/game.js"}}
-                       :dev-menu {:source-paths ["src-cljs-menu"]
+                       :dev-menu {:source-paths ["src-cljs-shared" "src-cljs-menu"]
                                   :compiler {:output-dir "resources/public/menu/js"
                                              :output-to "resources/public/menu.js"}}
-                       :production-menu {:source-paths ["src-cljs-menu"]
+                       :production-menu {:source-paths ["src-cljs-shared" "src-cljs-menu"]
                                          :compiler {:output-dir "target/menu"
                                                     :output-to "resources/public/menu.js"}}}}
   :figwheel {:repl false
