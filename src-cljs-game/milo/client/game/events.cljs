@@ -1,9 +1,9 @@
-(ns misplaced-villages.client.game.events
+(ns milo.client.game.events
   (:require [cognitect.transit :as transit]
-            [misplaced-villages.game :as game]
-            [misplaced-villages.player :as player]
-            [misplaced-villages.move :as move]
-            [misplaced-villages.client.game.message :as message]
+            [milo.game :as game]
+            [milo.player :as player]
+            [milo.move :as move]
+            [milo.client.game.message :as message]
             [re-frame.core :as rf]
             [taoensso.timbre :as log]))
 

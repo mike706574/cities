@@ -1,8 +1,8 @@
-(ns misplaced-villages.server.service
+(ns milo.server.service
   (:require [com.stuartsierra.component :as component]
             [taoensso.timbre :as log]
             [aleph.http :as aleph-http]
-            [misplaced-villages.server.connection :as conn])
+            [milo.server.connection :as conn])
   (:gen-class :main true))
 
 (defn- already-started

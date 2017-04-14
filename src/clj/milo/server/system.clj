@@ -1,4 +1,4 @@
-(ns misplaced-villages.server.system
+(ns milo.server.system
   (:require [cemerick.friend :as friend]
             [cemerick.friend.credentials :as creds]
             [cemerick.friend.workflows :as workflows]
@@ -8,11 +8,11 @@
             [manifold.stream :as s]
             [manifold.deferred :as d]
             [manifold.bus :as bus]
-            [misplaced-villages.game :as game]
-            [misplaced-villages.server.game :as game-resource]
-            [misplaced-villages.server.menu :as menu-resource]
-            [misplaced-villages.server.service :as service]
-            [misplaced-villages.server.connection :as conn]
+            [milo.game :as game]
+            [milo.server.game :as game-resource]
+            [milo.server.menu :as menu-resource]
+            [milo.server.service :as service]
+            [milo.server.connection :as conn]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.util.response :as response]
             [selmer.parser :as selmer]

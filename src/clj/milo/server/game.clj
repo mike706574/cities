@@ -1,18 +1,18 @@
-(ns misplaced-villages.server.game
+(ns milo.server.game
   (:require [aleph.http :as http]
             [clojure.spec :as spec]
             [clojure.string :as str]
             [manifold.stream :as s]
             [manifold.deferred :as d]
             [manifold.bus :as bus]
-            [misplaced-villages.card :as card]
-            [misplaced-villages.game :as game]
-            [misplaced-villages.move :as move]
-            [misplaced-villages.score :as score]
-            [misplaced-villages.player :as player]
-            [misplaced-villages.server.connection :as conn]
-            [misplaced-villages.server.message :refer [encode decode]]
-            [misplaced-villages.server.util :as util]
+            [milo.card :as card]
+            [milo.game :as game]
+            [milo.move :as move]
+            [milo.score :as score]
+            [milo.player :as player]
+            [milo.server.connection :as conn]
+            [milo.server.message :refer [encode decode]]
+            [milo.server.util :as util]
             [taoensso.timbre :as log]))
 
 (defn player-model

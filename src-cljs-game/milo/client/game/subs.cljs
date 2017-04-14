@@ -1,6 +1,6 @@
-(ns misplaced-villages.client.game.subs
-  (:require [misplaced-villages.game :as game]
-            [misplaced-villages.player :as player]
+(ns milo.client.game.subs
+  (:require [milo.game :as game]
+            [milo.player :as player]
             [re-frame.core :as rf]))
 
 (rf/reg-sub

@@ -18,14 +18,14 @@
    [manifold.stream :as s]
    [manifold.deferred :as d]
    [manifold.bus :as bus]
-   [misplaced-villages.card :as card]
-   [misplaced-villages.game :as game]
-   [misplaced-villages.move :as move]
-   [misplaced-villages.player :as player]
-   [misplaced-villages.server.system :as system]
-   [misplaced-villages.server.menu :as menu]))
+   [milo.card :as card]
+   [milo.game :as game]
+   [milo.move :as move]
+   [milo.player :as player]
+   [milo.server.system :as system]
+   [milo.server.menu :as menu]))
 
-(def config {:id "misplaced-villages-server" :port 8001})
+(def config {:id "milo-server" :port 8001})
 
 (defonce system nil)
 

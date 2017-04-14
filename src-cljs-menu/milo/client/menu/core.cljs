@@ -1,10 +1,10 @@
-(ns misplaced-villages.client.menu.core
+(ns milo.client.menu.core
   (:require [reagent.core :as reagent]
             [re-frame.core :as rf]
             [taoensso.timbre :as log]
-            [misplaced-villages.client.menu.events]
-            [misplaced-villages.client.menu.subs]
-            [misplaced-villages.client.menu.views :as views]))
+            [milo.client.menu.events]
+            [milo.client.menu.subs]
+            [milo.client.menu.views :as views]))
 
 (enable-console-print!)
 

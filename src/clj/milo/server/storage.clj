@@ -1,7 +1,7 @@
-(ns misplaced-villages.server.storage
+(ns milo.server.storage
   (:require [com.stuartsierra.component :as component]
             [manifold.stream :as s]
-            [misplaced-villages.server.util :as util]
+            [milo.server.util :as util]
             [taoensso.timbre :as log]))
 
 (defprotocol Storage

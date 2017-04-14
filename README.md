@@ -1,4 +1,4 @@
-# misplaced-villages-webapp
+# milo-webapp
 
 A webapp for a [Lost Cities](https://en.wikipedia.org/wiki/Lost_Cities) clone.
 

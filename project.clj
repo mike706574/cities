@@ -1,6 +1,6 @@
-(defproject org.clojars.mike706574/misplaced-villages-webapp "0.0.1-SNAPSHOT"
+(defproject org.clojars.mike706574/milo-webapp "0.0.1-SNAPSHOT"
   :description "Describe me!"
-  :url "https://github.com/mike706574/misplaced-villages-server"
+  :url "https://github.com/mike706574/milo-server"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.9.0-alpha15"]
@@ -8,7 +8,7 @@
                  [org.clojure/core.async "0.3.442"]
 
                  ;; Game
-                 [org.clojars.mike706574/misplaced-villages "0.0.1-SNAPSHOT"]
+                 [org.clojars.mike706574/milo "0.0.1-SNAPSHOT"]
 
                  ;; Utility
                  [com.cognitect/transit-clj "0.8.300"]
@@ -50,9 +50,9 @@
                    :cljsbuild
                    {:builds
                     {:dev-game
-                     {:figwheel {:on-jsload "misplaced-villages.client.game.core/reinitialize"
+                     {:figwheel {:on-jsload "milo.client.game.core/reinitialize"
                                  :websocket-host "192.168.1.141"}
-                      :compiler {:main "misplaced-villages.client.game.core"
+                      :compiler {:main "milo.client.game.core"
                                  :asset-path "js"
                                  :optimizations :none
                                  :source-map true
@@ -62,9 +62,9 @@
                                  :elide-asserts true
                                  :pretty-print false}}
                      :dev-menu
-                     {:figwheel {:on-jsload "misplaced-villages.client.menu.core/sync"
+                     {:figwheel {:on-jsload "milo.client.menu.core/sync"
                                  :websocket-host "192.168.1.141"}
-                      :compiler {:main "misplaced-villages.client.menu.core"
+                      :compiler {:main "milo.client.menu.core"
                                  :asset-path "menu/js"
                                  :optimizations :none
                                  :source-map true

@@ -1,4 +1,4 @@
-(ns misplaced-villages.client.menu.subs
+(ns milo.client.menu.subs
   (:require [re-frame.core :as rf]))
 
 (rf/reg-sub

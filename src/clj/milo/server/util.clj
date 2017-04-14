@@ -1,3 +1,3 @@
-(ns misplaced-villages.server.util)
+(ns milo.server.util)
 
 (defn uuid [] (str (java.util.UUID/randomUUID)))

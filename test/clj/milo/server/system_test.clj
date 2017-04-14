@@ -1,12 +1,12 @@
-(ns misplaced-villages.server.system-test
+(ns milo.server.system-test
   (:require [aleph.http :as http]
             [com.stuartsierra.component :as component]
             [clojure.test :refer [deftest testing is]]
             [manifold.stream :as s]
             [manifold.deferred :as d]
-            [misplaced-villages.game :as game]
-            [misplaced-villages.server.system :as system]
-            [misplaced-villages.server.message :refer [encode decode]]
+            [milo.game :as game]
+            [milo.server.system :as system]
+            [milo.server.message :refer [encode decode]]
             [taoensso.timbre :as log]))
 
 (def config {:id "test" :port 10000})

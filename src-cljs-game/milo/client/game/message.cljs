@@ -1,7 +1,7 @@
-(ns misplaced-villages.client.game.message
+(ns milo.client.game.message
   (:require [cljs.pprint :refer [pprint]]
-            [misplaced-villages.game :as game]
-            [misplaced-villages.player :as player]
+            [milo.game :as game]
+            [milo.player :as player]
             [taoensso.timbre :as log]))
 
 (defmulti handle

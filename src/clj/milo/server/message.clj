@@ -1,4 +1,4 @@
-(ns misplaced-villages.server.message
+(ns milo.server.message
   (:require [cognitect.transit :as transit]))
 
 (defn decode

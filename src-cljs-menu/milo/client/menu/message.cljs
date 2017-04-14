@@ -1,5 +1,5 @@
-(ns misplaced-villages.client.menu.message
-  (:require [misplaced-villages.game :as game]
+(ns milo.client.menu.message
+  (:require [milo.game :as game]
             [taoensso.timbre :as log]))
 
 (defmulti handle

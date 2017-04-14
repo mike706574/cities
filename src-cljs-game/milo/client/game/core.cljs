@@ -1,11 +1,11 @@
-(ns misplaced-villages.client.game.core
+(ns milo.client.game.core
   (:require [cljs.pprint :refer [pprint]]
             [reagent.core :as reagent]
             [re-frame.core :as rf]
             [taoensso.timbre :as log]
-            [misplaced-villages.client.game.events]
-            [misplaced-villages.client.game.subs]
-            [misplaced-villages.client.game.views :as views]))
+            [milo.client.game.events]
+            [milo.client.game.subs]
+            [milo.client.game.views :as views]))
 
 (enable-console-print!)
 (log/set-level! :trace)

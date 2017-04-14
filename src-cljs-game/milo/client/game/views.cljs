@@ -1,10 +1,10 @@
-(ns misplaced-villages.client.game.views
+(ns milo.client.game.views
   (:require [clojure.string :as str]
             [re-frame.core :as rf]
-            [misplaced-villages.game :as game]
-            [misplaced-villages.card :as card]
-            [misplaced-villages.player :as player]
-            [misplaced-villages.score :as score]
+            [milo.game :as game]
+            [milo.card :as card]
+            [milo.player :as player]
+            [milo.score :as score]
             [taoensso.timbre :as log]))
 
 (defn button

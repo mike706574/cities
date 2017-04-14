@@ -1,6 +1,6 @@
-(ns misplaced-villages.server.main
+(ns milo.server.main
   (:require [com.stuartsierra.component :as component]
-            [misplaced-villages.server.system :as system]
+            [milo.server.system :as system]
             [taoensso.timbre :as log])
   (:gen-class :main true))
 
@@ -10,5 +10,5 @@
   [_]
   (log/info "Starting up on port " port "!")
   (component/start-system
-   (system/system {:id "misplaced-villages" :port port}))
+   (system/system {:id "milo" :port port}))
   @(promise))

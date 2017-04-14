@@ -1,10 +1,10 @@
-(ns misplaced-villages.client.menu.events
+(ns milo.client.menu.events
   (:require [cognitect.transit :as transit]
-            [misplaced-villages.game :as game]
-            [misplaced-villages.player :as player]
-            [misplaced-villages.move :as move]
+            [milo.game :as game]
+            [milo.player :as player]
+            [milo.move :as move]
             [re-frame.core :as rf]
-            [misplaced-villages.client.menu.message :as message]
+            [milo.client.menu.message :as message]
             [taoensso.timbre :as log]))
 
 (defn decode
