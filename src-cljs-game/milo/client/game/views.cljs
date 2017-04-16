@@ -131,17 +131,14 @@
   (let [player @(rf/subscribe [:player])
         turn @(rf/subscribe [:turn])
         draw-count @(rf/subscribe [:draw-count])
+        round-number @(rf/subscribe [:round-number])
         opponent @(rf/subscribe [:opponent])
         turn? (= player turn)]
-    (log/debug (str "Player: " player
-                    " | Opponent: " opponent
-                    " | Turn: " turn
-                    " | Cards remaining: " draw-count))
-    (log/debug "Hand:" (map card/str-card @(rf/subscribe [:hand])))
     [:div
      [:h3 "Game"]
-     [:p (str "You are " player ". It's " (if turn? "your" (str opponent "'s"))
-              " turn. There are " draw-count " cards remaining.")]
+     [:h4 (str "Round #" round-number)]
+     [:p (str  "It's " (if turn? "your" (str opponent "'s")) " turn. "
+               "There are " draw-count " cards left in the draw pile.")]
      (if turn?
        [:div
         [:h5 "Hand"]
@@ -150,7 +147,7 @@
         [destination-view]
         [:h5 "Sources"]
         [source-view @(rf/subscribe [:available-discards])]
-        (button (str "Make Move") #(rf/dispatch [:move]))
+        (button (str "Take Turn") #(rf/dispatch [:take-turn]))
         (when-let [move-message @(rf/subscribe [:move-message])]
           [:p.red-text move-message])]
        [:div
@@ -187,7 +184,6 @@
                  [expedition-score-table opponent-expeditions]]))]
       [:div
        [:h3 "Game Over"]
-       [:p (str "You are " player ".")]
        [:table
         [:thead [:tr [:th player] [:th opponent]]]
         [:tfoot [:tr [:td player-score] [:td opponent-score]]]
@@ -213,15 +209,17 @@
 (defn app
   []
   (let [screen @(rf/subscribe [:screen])]
-    [:div
-     [:nav
-      [:a {:href "/"} "Menu"]
-      " "
-      [:a {:href "/logout"} "Logout"]]
-     (case screen
-       :splash [splash]
-       :player-selection [player-selection]
-       :game [game]
-       :game-over [game-over]
-       :error [error]
-       (throw (js/Error. (str "Invalid screen: " screen))))]))
+    (if (= screen :splash)
+      [splash]
+      [:div
+       [:nav
+        [:a {:href "/"} "Menu"]
+        " "
+        [:a {:href "/logout"} "Log out"]]
+       [:p (str "Logged in as " @(rf/subscribe [:player]))]
+       (case screen
+         :player-selection [player-selection]
+         :game [game]
+         :game-over [game-over]
+         :error [error]
+         (throw (js/Error. (str "Invalid screen: " screen))))])))

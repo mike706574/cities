@@ -1,5 +1,6 @@
 (ns milo.client.game.core
   (:require [cljs.pprint :refer [pprint]]
+            [day8.re-frame.http-fx]
             [reagent.core :as reagent]
             [re-frame.core :as rf]
             [taoensso.timbre :as log]
@@ -8,11 +9,11 @@
             [milo.client.game.views :as views]))
 
 (enable-console-print!)
-(log/set-level! :trace)
+(log/set-level! :info)
 
 (defn db
   []
-  (pprint @(rf/subscribe [:state])))
+  (pprint @(rf/subscribe [:db])))
 
 (defn sub
   [event]

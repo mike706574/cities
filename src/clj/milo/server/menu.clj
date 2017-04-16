@@ -154,8 +154,8 @@
 (defn consume-message
   [{:keys [games invites player-bus] :as deps} player raw-message]
   (let [message-id (util/uuid)]
+    (log/trace (str "Consuming message " message-id) ".")
     (try
-      (log/trace (str "Consuming message " message-id) ".")
       (let [parsed-message (decode raw-message)]
         (log/trace (str "Parsed message: " parsed-message))
         (dosync
@@ -191,19 +191,12 @@
         (log/debug (str "Player " player " connected to menu [" conn-id "]"))
         ;; Give player current menu state
         (s/put! conn (encode state-message))
-        ;; Game updates
-        (doseq [game (:menu/games state)]
-          (s/connect-via
-           (bus/subscribe game-bus (::game/id game))
-           (fn [message]
-             (log/debug (str "Preparing game message for " player "... not really though.")))
-           conn))
         ;; Player updates
         (s/connect-via
          (bus/subscribe player-bus player)
          (fn [message]
            (log/debug (str "Preparing player message for " player " [" conn-id "]"))
-           (log/debug "Message:" message)
+           (log/trace "Message:" message)
            (s/put! conn (encode message)))
          conn)
         ;; Consume messages from player

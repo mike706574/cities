@@ -4,8 +4,9 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.9.0-alpha15"]
-                 [com.stuartsierra/component "0.3.2"]
+                 [org.clojure/data.json "0.2.6"]
                  [org.clojure/core.async "0.3.442"]
+                 [com.stuartsierra/component "0.3.2"]
 
                  ;; Game
                  [org.clojars.mike706574/milo "0.0.1-SNAPSHOT"]
@@ -22,6 +23,7 @@
                  [aleph "0.4.3"]
                  [ring/ring-anti-forgery "1.0.1"]
                  [ring/ring-defaults "0.2.3"]
+                 [ring-middleware-format "0.7.2"]
                  [compojure "1.5.2"]
                  [com.cemerick/friend "0.3.0-SNAPSHOT"]
                  [selmer "1.10.7"]
@@ -30,7 +32,9 @@
                  [org.clojure/clojurescript "1.9.495"]
                  [com.cognitect/transit-cljs "0.8.239"]
                  [reagent "0.6.1"]
-                 [re-frame "0.9.2"]]
+                 [re-frame "0.9.2"]
+                 [day8.re-frame/http-fx "0.1.3"]
+                 [cljs-ajax "0.5.9"]]
 
   :source-paths ["src/clj"]
   :test-paths ["test/clj"]
@@ -73,16 +77,16 @@
                      {:compiler {:optimizations :advanced
                                  :elide-asserts true
                                  :pretty-print false}}}}}}
-  :cljsbuild {:builds {:dev-game {:source-paths ["src-cljs-shared" "src-cljs-game"]
+  :cljsbuild {:builds {:dev-game {:source-paths ["src-cljs-game"]
                                   :compiler {:output-dir "resources/public/game/js"
                                              :output-to "resources/public/game/game.js"}}
-                       :production-game {:source-paths ["src-cljs-shared" "src-cljs-game"]
+                       :production-game {:source-paths ["src-cljs-game"]
                                          :compiler {:output-dir "target/game"
                                                     :output-to "resources/public/game/game.js"}}
-                       :dev-menu {:source-paths ["src-cljs-shared" "src-cljs-menu"]
+                       :dev-menu {:source-paths ["src-cljs-menu"]
                                   :compiler {:output-dir "resources/public/menu/js"
                                              :output-to "resources/public/menu.js"}}
-                       :production-menu {:source-paths ["src-cljs-shared" "src-cljs-menu"]
+                       :production-menu {:source-paths ["src-cljs-menu"]
                                          :compiler {:output-dir "target/menu"
                                                     :output-to "resources/public/menu.js"}}}}
   :figwheel {:repl false

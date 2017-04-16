@@ -1,6 +1,7 @@
 (ns milo.client.game.message
   (:require [cljs.pprint :refer [pprint]]
             [milo.game :as game]
+            [milo.move :as move]
             [milo.player :as player]
             [taoensso.timbre :as log]))
 
@@ -9,76 +10,34 @@
     (::game/status message)))
 
 (defmethod handle :connected
-  [db {state ::game/state}]
+  [db {game ::game/state}]
   (log/debug "Connected!")
-  (if (game/game-over? state)
+  (if (game/game-over? game)
     (assoc db
-           :app/game state
+           :app/game game
            :app/loading? false
            :app/screen :game-over
-           :app/status-message "Connected.")
+           :app/status-message "Connected to completed game.")
     (assoc db
-           :app/game state
+           :app/game game
            :app/loading? false
            :app/screen :game
            :app/card nil
            :app/destination :expedition
            :app/source :draw-pile
-           :app/status-message "Connected.")))
-
-(defmethod handle :player-connected
-  [db {player ::player/id :as message}]
-  (assoc db :app/status-message (str player " connected.")))
+           :app/status-message "Connected to game.")))
 
 (defmethod handle :taken
-  [db {player ::player/id game ::game/state}]
-  (assoc db
-         :app/game game
-         :app/move-message nil
-         :app/status-message (str player " took a turn.")))
+  [db {move ::move/move game ::game/state}]
+  (let [message (str (::player/id move) " took a turn.")]
+    (assoc db :app/game game :app/status-message message)))
 
 (defmethod handle :round-over
-  [db {player ::player/id game ::game/state}]
-  (assoc db
-         :app/game game
-         :app/move-message nil
-         :app/status-message (str player " took a turn and ended the round.")))
+  [db {move ::move/move game ::game/state}]
+  (let [message (str (::player/id move) " took a turn and ended the round.")]
+    (assoc db :app/game game :app/status-message message)))
 
 (defmethod handle :game-over
-  [db {player ::player/id game ::game/state}]
-  (assoc db
-         :app/screen :game-over
-         :app/move-message nil
-         :app/status-message (str player " took a turn and ended the game.")))
-
-(defmethod handle :too-low
-  [db {player ::player/id game ::game/state}]
-  (assoc db :app/move-message (str "Tow low!")))
-
-(defmethod handle :invalid-move
-  [{player :app/player :as db} {action-player ::player/id}]
-  (if (= player action-player)
-    (assoc db :app/move-message (str "Invalid move!"))
-    db))
-
-(defmethod handle :expedition-underway
-  [{player :app/player :as db} {action-player ::player/id}]
-  (if (= player action-player)
-    (assoc db :app/move-message (str "Expedition already underway!!"))
-    db))
-
-(defmethod handle :discard-empty
-  [db [_ state]]
-  (log/error (str "Discard empty error."))
-  (assoc db
-         :app/screen :error
-         :app/error-message
-         :app/error-body (with-out-str (pprint state))))
-
-(defmethod handle :card-not-in-hand
-  [db [_ state]]
-  (log/error (str "Card not in hand error."))
-  (assoc db
-         :app/screen :error
-         :app/error-message
-         :app/error-body (with-out-str (pprint state))))
+  [db {move ::move/move game ::game/state}]
+  (let [message (str (::player/id move) " took a turn and ended the game.")]
+    (assoc db :app/game game :app/screen :game-over :app/status-message )))

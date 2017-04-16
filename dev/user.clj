@@ -14,6 +14,7 @@
    [clojure.string :as str]
    [clojure.test :as test]
    [clojure.tools.namespace.repl :refer [refresh refresh-all]]
+   [cognitect.transit :as transit]
    [com.stuartsierra.component :as component]
    [manifold.stream :as s]
    [manifold.deferred :as d]
@@ -23,7 +24,8 @@
    [milo.move :as move]
    [milo.player :as player]
    [milo.server.system :as system]
-   [milo.server.menu :as menu]))
+   [milo.server.menu :as menu]
+   [milo.server.message :as message]))
 
 (def config {:id "milo-server" :port 8001})
 
@@ -100,3 +102,25 @@
     (check abby)
     (s/close! mike)
     (s/close! abby)))
+
+(comment
+  @(http/get "http://localhost:8001/")
+
+  (-> system
+      :games
+      deref
+
+)
+
+ (-> @(http/put "http://localhost:8001/api/game/1"
+                {:headers {"Content-Type" "application/transit+json"
+                           "Player" "abby"
+                           "Accept" "application/transit+json"}
+                 :body (message/encode (move/exp* "abby" (card/number :blue 5)))
+                 :throw-exceptions false})
+     :body
+     slurp
+     message/decode
+)
+   @(http/websocket-client "ws://localhost:8001/menu-websocket")
+  )

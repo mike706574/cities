@@ -1,11 +1,66 @@
 (ns milo.client.game.events
-  (:require [cognitect.transit :as transit]
+  (:require [ajax.core :as ajax]
+            [cognitect.transit :as transit]
             [milo.game :as game]
             [milo.player :as player]
             [milo.move :as move]
             [milo.client.game.message :as message]
             [re-frame.core :as rf]
             [taoensso.timbre :as log]))
+
+(rf/reg-event-fx
+ :take-turn
+ (fn [{:keys [db]} _]
+   (let [{:keys [:app/card :app/destination :app/source :app/player]} db
+         move (move/move player card destination source)
+         uri (str "/api/game/" (:app/game-id db))]
+     {:db (-> db
+              (assoc :app/loading? true)
+              (dissoc :app/move-message))
+      :http-xhrio {:method :put
+                   :uri uri
+                   :params move
+                   :headers {"Player" player}
+                   :format (ajax/transit-request-format)
+                   :response-format (ajax/transit-response-format)
+                   :on-success [:turn-taken]
+                   :on-failure [:turn-rejected]}})))
+
+(rf/reg-event-db
+ :turn-taken
+ (fn [db [_ response]]
+   (let [{status ::game/status game ::game/state} response]
+     (if (= status :game-over)
+       (assoc db
+              :app/loading? false
+              :app/game game
+              :app/screen :game-over
+              :app/status-message "Gave over.")
+       (merge db {:app/card nil
+                  :app/game game
+                  :app/status-message (case status
+                                        :taken (str "You took a turn.")
+                                        :round-over (str "You took a turn and ended the round."))
+                  :app/destination :expedition
+                  :app/source :draw-pile})))))
+
+(rf/reg-event-db
+ :turn-rejected
+ (fn [db [_ {status :status response :response :as failure}]]
+   (cljs.pprint/pprint failure)
+   (if-not (= status 409)
+     (merge db {:app/screen :error
+                :app/error-message response})
+     (let [message (case (::game/status response)
+                     :too-low "Too low!"
+
+                     :expedition-underway "Expedition already underway!"
+                     ;; TODO: These should never happen - handle them
+                     ;;       differently.
+                     :invalid-move "Invalid move!"
+                     :discard-empty "Discard empty!"
+                     :card-not-in-hand "Card not in hand!")]
+       (assoc db :app/move-message message)))))
 
 (defn decode
   [message]
@@ -19,7 +74,6 @@
   [event]
   (let [data (.-data event)
         message (decode data)]
-    (log/trace "Received message:" message)
     (rf/dispatch [:message message])))
 
 (defn connect
@@ -68,8 +122,7 @@
 
 (rf/reg-event-db
  :connected
- (fn [db [_ message]]
-))
+ (fn [db [_ message]]))
 
 (rf/reg-event-db
  :player-change
@@ -79,37 +132,24 @@
 (rf/reg-event-db
  :destination-change
  (fn [db [_ destination]]
-   (assoc db :app/destination destination)))
+   (-> db
+       (assoc :app/destination destination)
+       (dissoc :app/move-message))))
 
 (rf/reg-event-db
  :source-change
  (fn [db [_ source]]
-   (assoc db :app/source source)))
+   (-> db
+       (assoc :app/source source)
+       (dissoc :app/move-message))))
 
 (rf/reg-event-db
  :card-change
  (fn [db [_ card]]
    (log/debug (str "Changing card to " card))
-   (assoc db :app/card card)))
-
-(rf/reg-event-db
- :move
- (fn [db [_]]
-   (let [{:keys [:app/socket
-                 :app/card
-                 :app/destination
-                 :app/source
-                 :app/player]} db
-         move (move/move player
-                         card
-                         destination source)]
-     (log/debug "Sending move:" move)
-     (.send socket (encode move))
-     (assoc db
-       :app/card nil
-       :app/destination :expedition
-       :app/source :draw-pile)
-     db)))
+   (-> db
+       (assoc :app/card card)
+       (dissoc :app/move-message))))
 
 (rf/reg-event-db
  :error

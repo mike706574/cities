@@ -41,8 +41,6 @@
                        "mike" "abby"
                        "abby" "mike")]
       [:div
-       (button "Sync" #(rf/dispatch [:sync]))
-       [:p (str "You are " player ".")]
        [:h3 "Games"]
        [button (str "Invite " other-player) #(rf/dispatch [:send-invite other-player])]
        (let [games @(rf/subscribe [:games])]
@@ -77,12 +75,14 @@
 (defn app
   []
   (let [screen @(rf/subscribe [:screen])]
-    [:div
-     [:nav
-      [:a {:href "/logout"} "Logout"]]
-     (case screen
-       :splash [splash]
-       :player-selection [player-selection]
-       :menu [menu]
-       :error [error]
-       (throw (js/Error. (str "Invalid screen: " screen))))]))
+    (if (= screen :splash)
+      [splash]
+      [:div
+       [:nav
+        [:a {:href "/logout"} "Log out"]]
+       [:p (str "Logged in as " @(rf/subscribe [:player]))]
+       (case screen
+         :player-selection [player-selection]
+         :menu [menu]
+         :error [error]
+         (throw (js/Error. (str "Invalid screen: " screen))))])))

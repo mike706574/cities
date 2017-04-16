@@ -4,6 +4,11 @@
             [re-frame.core :as rf]))
 
 (rf/reg-sub
+ :db
+ (fn [db _]
+   db))
+
+(rf/reg-sub
  :screen
  (fn [db _]
    (:app/screen db)))
@@ -33,6 +38,11 @@
  :opponent
  (fn [{game :app/game player :app/player} _]
    (game/opponent game player)))
+
+(rf/reg-sub
+ :round-number
+ (fn [{game :app/game} _]
+   (::game/round-number game)))
 
 (rf/reg-sub
  :hand
