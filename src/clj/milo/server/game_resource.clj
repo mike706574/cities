@@ -13,7 +13,8 @@
                                       non-websocket-response
                                       not-acceptable
                                       parsed-body
-                                      unsupported-media-type]]
+                                      unsupported-media-type
+                                      missing-header]]
             [milo.server.message :refer [decode
                                          encode]]
             [milo.server.model :as model]
@@ -50,10 +51,12 @@
                                    ::game/message (str "Game " game-id " not found.")})))))
 
 (defn handle-turn
-  [{:keys [games] :as deps} player {headers :headers :as request}]
+  [{:keys [games] :as deps} request]
   (or (unsupported-media-type request)
       (not-acceptable request)
-      (let [move (parsed-body request)]
+      (missing-header request "player")
+      (let [player (get-in request [:headers "player"])
+            move (parsed-body request)]
         (if-not move
           (body-response 400 request {:message "Invalid request body."})
           (if-let [validation-failure (spec/explain-data ::move/move move)]

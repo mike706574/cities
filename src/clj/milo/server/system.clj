@@ -6,7 +6,7 @@
             [clojure.string :as str]
             [clojure.set :as set]
             [clojure.spec :as spec]
-            [compojure.core :as compojure :refer [GET PUT ANY]]
+            [compojure.core :as compojure :refer [GET PUT ANY POST DELETE]]
             [compojure.route :as route]
             [manifold.bus :as bus]
             [milo.game :as game]
@@ -45,18 +45,27 @@
   [deps]
   (compojure/routes
    (PUT "/api/game/:id" request
-        (log/debug "Request!")
-        (let [player (get-in request [:headers "player"])
-              response (game-resource/handle-turn deps player request)]
+        (log/debug "Turn request!")
+        (let [response (game-resource/handle-turn deps request)]
           (log/debug "Response!")
           response))
 
-   (PUT "/api/game/:id" request
-        (log/debug "Request!")
-        (let [player (get-in request [:headers "player"])
-              response (game-resource/handle-turn deps player request)]
-          (log/debug "Response!")
-          response))
+   (POST "/api/game" request
+         (let [response (menu-resource/accept-invite deps request)]
+           (log/debug "Response!")
+           response))
+
+   (POST "/api/invite" request
+         (log/debug "Invite request!")
+         (let [response (menu-resource/send-invite deps request)]
+           (log/debug "Response!")
+           response))
+
+   (DELETE "/api/invite/:opponent" request
+         (log/debug "Delete invite!")
+         (let [response (menu-resource/delete-invite deps request)]
+           (log/debug "Response!")
+           response))
 
    (route/not-found {:status 200})))
 
@@ -167,11 +176,13 @@
         event-id (atom 0)
         deps {:games games
               :invites invites
+              :event-id event-id
               :game-bus (bus/event-bus)
               :player-bus (bus/event-bus)
               :conn-manager conn-manager}]
     {:games games
      :invites invites
+     :event-id event-id
      :conn-manager conn-manager
      :handler (handler deps)
      :app (service/aleph-service config)}))

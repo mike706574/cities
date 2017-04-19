@@ -33,11 +33,15 @@
     {:status 406
      :headers {"Consumes" supported-media-types }}))
 
+(defn missing-header
+  [request header]
+  (when (str/blank? (get-in request [:headers header]))
+    {:status 400
+     :headers {"Missing-Required-Header" header}}))
+
 (defmulti parsed-body
   (fn [request]
-    (println     (get-in request [:headers "content-type"]))
-        (get-in request [:headers "content-type"])
-))
+    (get-in request [:headers "content-type"])))
 
 (defmethod parsed-body "application/edn"
   [request]

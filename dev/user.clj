@@ -121,5 +121,22 @@
      slurp
      message/decode
 )
+
+
+ @(:invites system)
+
+ (-> @(http/post "http://localhost:8001/api/invite"
+                {:headers {"Content-Type" "application/transit+json"
+                           "Player" "abby"
+                           "Accept" "application/transit+json"}
+                 :throw-exceptions false})
+     :body
+     slurp
+     message/decode
+)
+
+
+
+
    @(http/websocket-client "ws://localhost:8001/menu-websocket")
   )

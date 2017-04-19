@@ -16,6 +16,22 @@
   [message]
   (transit/write (transit/writer :json) message))
 
+(rf/reg-event-fx
+ :take-turn
+ (fn [{:keys [db]} _]
+   (let [{:keys [:app/card :app/destination :app/source :app/player]} db
+         move (move/move player card destination source)
+         uri (str "/api/game/" (:app/game-id db))]
+     {:db (dissoc db :app/move-message)
+      :http-xhrio {:method :put
+                   :uri uri
+                   :params move
+                   :headers {"Player" player}
+                   :format (ajax/transit-request-format)
+                   :response-format (ajax/transit-response-format)
+                   :on-success [:turn-taken]
+                   :on-failure [:turn-rejected]}})))
+
 (defn handle-socket-event
   [event]
   (let [data (.-data event)
@@ -88,6 +104,22 @@
      (do (log/info "Syncing!")
          (.send socket (encode {::menu/status :sync}))))
    db))
+
+(rf/reg-event-fx
+ :send-invite-rest
+ (fn [{:keys [db]} _]
+   (let [{:keys [:app/card :app/destination :app/source :app/player]} db
+         move (move/move player card destination source)
+         uri (str "/api/game/" (:app/game-id db))]
+     {:db (dissoc db :app/move-message)
+      :http-xhrio {:method :put
+                   :uri uri
+                   :params move
+                   :headers {"Player" player}
+                   :format (ajax/transit-request-format)
+                   :response-format (ajax/transit-response-format)
+                   :on-success [:turn-taken]
+                   :on-failure [:turn-rejected]}})))
 
 (rf/reg-event-db
  :send-invite

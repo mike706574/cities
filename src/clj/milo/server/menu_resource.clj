@@ -25,13 +25,15 @@
 
 ;; REST-y functions, to replace websocket messages
 (defn send-invite
-  [{:keys [event-id invites player-bus]} player request opponent]
+  [{:keys [event-id invites player-bus]} request]
   (dosync
-   (let [to-invite [player opponent]
+   (let [player (get-in request [:headers "player"])
+         opponent (::menu/opponent (parsed-body request))
+         to-invite [player opponent]
          from-invite [opponent player]]
      (cond
-       (contains? invites to-invite) (body-response 409 request {::menu/status :already-invited})
-       (contains? invites from-invite) (body-response 409 request {::menu/status :already-invited-by})
+       (contains? @invites to-invite) (body-response 409 request {::menu/status :already-invited})
+       (contains? @invites from-invite) (body-response 409 request {::menu/status :already-invited-by})
        :else (let [event-id (swap! event-id inc)
                    body {:milo/event-id event-id
                              ::menu/status :sent-invite
@@ -43,42 +45,62 @@
                                                   ::menu/invite to-invite})
                (body-response 201 request body))))))
 
-(defn reject-invite
+(defn delete-invite
   [{:keys [event-id invites player-bus]} player request opponent]
   (dosync
-   (let [invite [opponent player]]
-     (if-not (contains? invites invite)
-       (body-response 409 request {::menu/status :no-invite-to-reject ::menu/invite invite})
-       (let [event-id (swap! event-id inc)
-             body {:milo/event-id event-id
-                   ::menu/status :rejected-invite
-                   ::menu/invite invite}]
-         (alter invites disj invite)
-         (bus/publish! player-bus player body)
-         (bus/publish! player-bus opponent {::menu/status :invite-rejected
-                                            ::menu/invite invite})
-         (body-response 202 request body))))))
+   (let [player (get-in request [:headers :player])
+         opponent (get-in request )
+         to-invite [opponent player]
+         from-invite [player opponent]]
+     (cond
+       (contains? invites to-invite) (let [event-id (swap! event-id inc)
+                                           body {:milo/event-id event-id
+                                                 ::menu/status :canceled-invite
+                                                 ::menu/invite to-invite}]
+                                       (alter invites disj to-invite)
+                                       (bus/publish! player-bus player body)
+                                       (bus/publish! player-bus opponent {:milo/event-id event-id
+                                                                          ::menu/status :invite-canceled
+                                                                          ::menu/invite to-invite})
+                                       (body-response 202 request body))
+
+       (contains? invites from-invite) (let [event-id (swap! event-id inc)
+                                             body {:milo/event-id event-id
+                                                   ::menu/status :rejected-invite
+                                                   ::menu/invite from-invite}]
+                                         (alter invites disj from-invite)
+                                         (bus/publish! player-bus player body)
+                                         (bus/publish! player-bus opponent {:milo/event-id event-id
+                                                                            ::menu/status :invite-rejected
+                                                                            ::menu/invite from-invite})
+                                         (body-response 202 request body))
+       :else (body-response 404 request {::menu/status :invite-not-found
+                                         ::menu/opponent opponent})))))
 
 (defn accept-invite
   [{:keys [event-id games invites player-bus]} player request opponent]
-  (dosync
-   (let [invite [opponent player]]
-     (if-not (contains? invites invite)
-       (body-response 409 request {::menu/status :no-invite-to-accept
-                                   ::menu/invite invite})
-       (let [event-id (swap! event-id inc)
-             id (str (inc (count @games)))
-             game (assoc (game/rand-game invite 4) ::game/id id)
-             body {:milo/event-id event-id
-                   ::menu/status :game-created
-                   ::menu/game (model/game-summary-for player game)}]
-         (alter invites disj invite)
-         (alter games assoc id game)
-         (bus/publish! player-bus player body)
-         (bus/publish! player-bus opponent {:milo/event-id event-id
-                                            ::menu/status :game-created
-                                            ::menu/game (model/game-summary-for opponent game)})
-         (body-response 201 request body))))))
+  (or (unsupported-media-type request)
+      (not-acceptable request)
+      (let [player (get-in request [:headers "player"])
+            opponent (::menu/opponent (parsed-body request))
+            invite [opponent player]]
+        (dosync
+         (if-not (contains? invites invite)
+           (body-response 404 request {::menu/status :invite-not-found
+                                       ::menu/invite invite})
+           (let [event-id (swap! event-id inc)
+                 id (str (inc (count @games)))
+                 game (assoc (game/rand-game invite 4) ::game/id id)
+                 body {:milo/event-id event-id
+                       ::menu/status :game-created
+                       ::menu/game (model/game-summary-for player game)}]
+             (alter invites disj invite)
+             (alter games assoc id game)
+             (bus/publish! player-bus player body)
+             (bus/publish! player-bus opponent {:milo/event-id event-id
+                                                ::menu/status :game-created
+                                                ::menu/game (model/game-summary-for opponent game)})
+             (body-response 201 request body)))))))
 
 (defn cancel-invite
   [{:keys [event-id games invites player-bus]} player request opponent]
@@ -87,16 +109,7 @@
      (if-not (contains? invites invite)
        (body-response 409 request {::menu/status :no-invite-to-cancel
                                    ::menu/invite invite})
-       (let [event-id (swap! event-id)
-             body {:milo/event-id event-id
-                   ::menu/status :canceled-invite
-                   ::menu/invite invite}]
-         (alter invites disj invite)
-         (bus/publish! player-bus player body)
-         (bus/publish! player-bus opponent {:milo/event-id event-id
-                                            ::menu/status :invite-canceled
-                                            ::menu/invite invite})
-         (body-response 202 request body))))))
+))))
 
 (defmulti process-message
   "Given a message, return all actions to be performed."
