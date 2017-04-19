@@ -38,7 +38,6 @@
           (card/str-card card)]])
       hand)]))
 
-
 (defn inline-cards
   [hand]
   [:ul.no-space
@@ -62,11 +61,11 @@
           (td [row [color cards]]
             (if-let [card (get cards row)]
               [:td {:key color
-                    :class (name color)} (card/str-card card)]
+                    :class (name color)}
+               (card/str-card card)]
               [:td {:key color} ""]))
           (tr [row]
-            [:tr
-             {:key row}
+            [:tr {:key row}
              (map (partial td row) stacks)])]
     (let [max-count (->> (map (comp count val) stacks)
                          (apply max))
@@ -130,8 +129,8 @@
   (log/debug "Rendering game!")
   (let [player @(rf/subscribe [:player])
         turn @(rf/subscribe [:turn])
-        draw-count @(rf/subscribe [:draw-count])
         round-number @(rf/subscribe [:round-number])
+        draw-count @(rf/subscribe [:draw-count])
         opponent @(rf/subscribe [:opponent])
         turn? (= player turn)]
     [:div
@@ -160,41 +159,55 @@
      [:h5 (str opponent "'s Expeditions")]
      (expedition-table @(rf/subscribe [:opponent-expeditions]))]))
 
+(defn expedition-score-tables
+  [round player opponent]
+  (let [all-data (::game/player-data round)
+        player-expeditions (get-in all-data [player ::player/expeditions])
+        opponent-expeditions (get-in all-data [opponent ::player/expeditions])]
+    [:div
+     [:h5 "Your expeditions"]
+     [expedition-score-table player-expeditions]
+     [:h5 opponent "'s expeditions"]
+     [expedition-score-table opponent-expeditions]]))
+
 (defn game-over
   []
   (log/debug "Rendering game over screen!")
   (let [player @(rf/subscribe [:player])
-        loading? @(rf/subscribe [:loading?])
         opponent @(rf/subscribe [:opponent])
         past-rounds @(rf/subscribe [:past-rounds])
         round-scores (map score/round-scores past-rounds)
         player-score (reduce + (map #(get % player) round-scores))
         opponent-score (reduce + (map #(get % opponent) round-scores))]
-    (letfn [(round-summary [number round]
-              (let [all-data (::game/player-data round)
-                    player-expeditions (get-in all-data [player ::player/expeditions])
-                    opponent-expeditions (get-in all-data [opponent ::player/expeditions])
-                    number (inc number)]
-                [:li
-                 {:key number}
-                 [:h3 "Round " number]
-                 [:h5 "Your expeditions"]
-                 [expedition-score-table player-expeditions]
-                 [:h5 opponent "'s expeditions"]
-                 [expedition-score-table opponent-expeditions]]))]
-      [:div
-       [:h3 "Game Over"]
-       [:table
-        [:thead [:tr [:th player] [:th opponent]]]
-        [:tfoot [:tr [:td player-score] [:td opponent-score]]]
-        [:tbody (map-indexed
-                 (fn [index round]
-                   [:tr
-                    {:key index}
-                    [:td (get round player)]
-                    [:td (get round opponent)]])
-                 round-scores)]]
-       [:ul (map-indexed round-summary past-rounds)]])))
+    [:div
+     [:h3 "Game Over"]
+     [:table
+      [:thead [:tr [:th player] [:th opponent]]]
+      [:tfoot [:tr [:td player-score] [:td opponent-score]]]
+      [:tbody (map-indexed
+               (fn [index round]
+                 [:tr {:key index}
+                  [:td (get round player)]
+                  [:td (get round opponent)]])
+               round-scores)]]
+     [:ul
+      (map-indexed
+       (fn [index round]
+         [:li {:key index}
+          (str "Round #" (inc index))
+          (expedition-score-tables round player opponent)])
+       past-rounds)]]))
+
+(defn round-over
+  []
+  (log/debug "Rendering round over screen!")
+  (let [player @(rf/subscribe [:player])
+        opponent @(rf/subscribe [:opponent])
+        round @(rf/subscribe [:last-round])]
+    [:div
+     [:h3 "Round Over"]
+     [button "Play" #(rf/dispatch [:round-screen])]
+     (expedition-score-tables round player opponent)]))
 
 (defn splash
   []
@@ -220,6 +233,7 @@
        (case screen
          :player-selection [player-selection]
          :game [game]
+         :round-over [round-over]
          :game-over [game-over]
          :error [error]
          (throw (js/Error. (str "Invalid screen: " screen))))])))

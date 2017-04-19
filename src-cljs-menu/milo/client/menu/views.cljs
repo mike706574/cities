@@ -34,34 +34,59 @@
        [:span "No " label "."]
        [:ul (map-indexed li coll)])]))
 
+(defn game-item
+  [game player]
+  (let [{:keys [::game/id ::game/opponent ::game/turn]} game]
+    [:div
+     [:span
+      [:em opponent]
+      " "
+      [:a {:href (str "/game/" id)} "Go"]]]))
+
+(defn active-game-list
+  [games player]
+  (if (empty? games)
+    [:p "No games!"]
+    [:ul
+     (for [[id game] games]
+       [:li {:key id} (game-item game player)])]))
+
+(defn ready-games
+  []
+  [:div
+   [:h3 "Your Turn"]
+   (active-game-list @(rf/subscribe [:ready-games])
+                     @(rf/subscribe [:player]))])
+
+(defn waiting-games
+  []
+  [:div
+   [:h3 "Their Turn"]
+   (active-game-list @(rf/subscribe [:waiting-games])
+                     @(rf/subscribe [:player]))])
+
 (defn menu
   []
   (let [player @(rf/subscribe [:player])
-        other-player (case player
-                       "mike" "abby"
-                       "abby" "mike")]
+        other-player (case player "mike" "abby" "abby" "mike")]
       [:div
-       [:h3 "Games"]
+       [ready-games]
+       [waiting-games]
        [button (str "Invite " other-player) #(rf/dispatch [:send-invite other-player])]
-       (let [games @(rf/subscribe [:games])]
-         (if (empty? games)
-           [:span "You have no games."]
-           [:ul
-            (for [[id state] games]
-              [:li {:key id} [:a {:href (str "/game/" id)} id ", Versus " (::game/opponent state)]])]))
        (headed-list
         "Invites"
         (fn [[_ opponent :as request]]
           [:div
-           (str request)
+           (str "You invited " (second request) " to play. ")
            (button "Cancel" #(rf/dispatch [:cancel-invite opponent]))])
         @(rf/subscribe [:sent-invites]))
        (headed-list
         "Requests"
         (fn [[opponent :as request]]
           [:div
-           (str request)
+           (str (first request) " invited you to play. ")
            (button "Accept" #(rf/dispatch [:accept-invite opponent]))
+           " "
            (button "Reject" #(rf/dispatch [:reject-invite opponent]))])
         @(rf/subscribe [:received-invites]))
        (headed-list "messages" str @(rf/subscribe [:messages]))]))

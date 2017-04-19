@@ -1,4 +1,4 @@
-(ns milo.server.game
+(ns milo.server.game-resource
   (:require [aleph.http :as http]
             [clojure.spec :as spec]
             [manifold.bus :as bus]
@@ -16,46 +16,38 @@
                                       unsupported-media-type]]
             [milo.server.message :refer [decode
                                          encode]]
+            [milo.server.model :as model]
             [milo.server.util :as util]
             [taoensso.timbre :as log]))
 
-(defn player-model
-  [state player]
-  (if (game/game-over? state)
-    state
-    (let [{:keys [::game/players ::game/round ::game/previous-rounds]}  state
-          {:keys [::game/draw-pile ::game/discard-piles]} round
-          opponent (game/opponent state player)
-          available-discards (into [] (comp (map val)
-                                            (map last)
-                                            (filter identity))
-                                   discard-piles)
-          round (-> round
-                    (dissoc ::game/draw-pile ::game/discard-piles)
-                    (update-in [::game/player-data opponent] dissoc ::player/hand)
-                    (assoc ::game/available-discards available-discards)
-                    (assoc ::game/draw-count (count draw-pile)))
-          round-number (inc (count previous-rounds))]
-      (assoc state ::game/round round ::game/round-number round-number))))
-
 (defn take-turn
-  [{games :games game-bus :game-bus :as deps} player request move]
+  [{:keys [event-id games game-bus player-bus] :as deps} player request move]
   (dosync
-   (let [accept (get-in request [:headers "accept"])
-         game-id (get-in request [:params :id])]
+   (let [game-id (get-in request [:params :id])]
      (if-let [game (get @games game-id)]
-       (let [{status ::game/status game' ::game/state :as response} (game/take-turn game move)]
+       (let [{status ::game/status game' ::game/game :as response} (game/take-turn game move)]
          (let [opponent (game/opponent game player)]
            (if (contains? #{:taken :round-over :game-over} status)
-             (do (log/debug (str "Turn taken - updating game."))
-                 (alter games (fn [games] (assoc games game-id game')))
-                 (bus/publish! game-bus [game-id opponent] {::game/status status
-                                                            ::move/move move
-                                                            ::game/state game'})
-                 (body-response 200 request {::game/status status
-                                             ::game/state (player-model game' player)}))
-             (body-response 409 request {::game/status status}))))
-       (body-response 404 request {:message (str "Game " game-id " not found.")})))))
+             (let [event-id (swap! event-id inc)]
+               (log/debug (str "Turn taken - updating game."))
+               (alter games (fn [games] (assoc games game-id game')))
+               (bus/publish! game-bus [game-id opponent] {:milo/event-id event-id
+                                                          :milo/status status
+                                                          ::move/move move
+                                                          ::game/game game'})
+               (bus/publish! player-bus player {:milo/event-id event-id
+                                                :milo/status status
+                                                ::move/move move})
+               (bus/publish! player-bus opponent {:milo/event-id event-id
+                                                  :milo/status status
+                                                  ::move/move move})
+               (body-response 200 request {:milo/event-id event-id
+                                           :milo/status status
+                                           ::game/game (model/game-for player game')}))
+             (body-response 409 request {:milo/status status
+                                         :milo/event-id event-id}))))
+       (body-response 404 request {:milo/status :game-not-found
+                                   ::game/message (str "Game " game-id " not found.")})))))
 
 (defn handle-turn
   [{:keys [games] :as deps} player {headers :headers :as request}]
@@ -94,9 +86,9 @@
           (log/debug (str "Player " player " connected to game " game-id ". [" conn-id "]"))
           ;; Give player current game state
           (stream/put! conn (encode {::game/status :connected
-                                     ::game/state (player-model
-                                                   (get @games game-id)
-                                                   player)}))
+                                     ::game/game (model/game-for
+                                                   player
+                                                   (get @games game-id))}))
           ;; Connect player to bus
           (stream/connect-via
            (bus/subscribe game-bus [game-id player])
@@ -104,8 +96,8 @@
              (log/trace (str "Preparing message for " player "..."))
              (stream/put! conn (encode (update-existing
                                         message
-                                        ::game/state
-                                        #(player-model % player)))))
+                                        ::game/game
+                                        (partial model/game-for player)))))
            conn)
           {:status 101})))))
 

@@ -1,0 +1,3 @@
+#!/bin/sh
+rm -f resources/public/game/game.js
+lein figwheel dev-game

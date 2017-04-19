@@ -10,7 +10,7 @@
 
 (defn db
   []
-  (cljs.pprint/pprint @(rf/subscribe [:state])))
+  (cljs.pprint/pprint @(rf/subscribe [:db])))
 
 (defn ^:export sync
   []

@@ -13,8 +13,8 @@
             [milo.move :as move]
             [milo.card :as card]
             [milo.player :as player]
-            [milo.server.game :as game-resource]
-            [milo.server.menu :as menu-resource]
+            [milo.server.game-resource :as game-resource]
+            [milo.server.menu-resource :as menu-resource]
             [milo.server.service :as service]
             [milo.server.connection :as conn]
             [milo.server.http :refer [unsupported-media-type
@@ -50,6 +50,14 @@
               response (game-resource/handle-turn deps player request)]
           (log/debug "Response!")
           response))
+
+   (PUT "/api/game/:id" request
+        (log/debug "Request!")
+        (let [player (get-in request [:headers "player"])
+              response (game-resource/handle-turn deps player request)]
+          (log/debug "Response!")
+          response))
+
    (route/not-found {:status 200})))
 
 (defn api-handler
@@ -153,9 +161,10 @@
 
 (defn system [config]
   (let [invites (ref #{})
-        games (ref {"1" test-game})
+        games (ref {})
         conns (atom {})
         conn-manager (conn/manager conns)
+        event-id (atom 0)
         deps {:games games
               :invites invites
               :game-bus (bus/event-bus)

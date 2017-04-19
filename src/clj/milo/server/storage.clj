@@ -14,5 +14,5 @@
   Storage
   (swap-game! [this id f args]
     (dosync
-     (let [state (get @games id)]
+     (let [game (get @games id)]
        (alter games (fn [games] (update games id #(apply f % args))))))))

@@ -42,7 +42,12 @@
 (rf/reg-sub
  :round-number
  (fn [{game :app/game} _]
-   (::game/round-number game)))
+   (inc (count (::game/past-rounds game)))))
+
+(rf/reg-sub
+ :last-round
+ (fn [{game :app/game} _]
+   (last (::game/past-rounds game))))
 
 (rf/reg-sub
  :hand

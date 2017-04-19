@@ -24,7 +24,6 @@
    [milo.move :as move]
    [milo.player :as player]
    [milo.server.system :as system]
-   [milo.server.menu :as menu]
    [milo.server.message :as message]))
 
 (def config {:id "milo-server" :port 8001})

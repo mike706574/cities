@@ -1,0 +1,3 @@
+#!/bin/sh
+rm -f resources/public/menu.js
+lein figwheel dev-menu

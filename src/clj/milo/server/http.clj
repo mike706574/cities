@@ -31,7 +31,6 @@
   [request]
   (when (not-acceptable? request)
     {:status 406
-     ;; TODO: This is not legit.
      :headers {"Consumes" supported-media-types }}))
 
 (defmulti parsed-body
@@ -50,10 +49,7 @@
 (defmethod parsed-body "application/transit+json"
   [{body :body}]
   (try
-    (let [foo       (transit/read (transit/reader body :json))]
-      (println "FOO:" foo)
-foo
-)
+    (transit/read (transit/reader body :json))
     (catch Exception ex
       (log/error ex "Failed to parse transit+json request body."))))
 
@@ -80,7 +76,10 @@ foo
       (transit/write (transit/writer out :json) body)
       (.toByteArray out))
     (catch Exception ex
-      (log/error ex "Failed to write transit+json response body."))))
+      (throw (ex-info "Failed to write transit+json response body."
+                      {:request request
+                       :body body
+                       :exception ex})))))
 
 (defmethod response-body "application/transit+msgpack"
   [request body]
@@ -89,7 +88,10 @@ foo
       (transit/write (transit/writer out :msgpack) body)
       (.toByteArray out))
     (catch Exception ex
-      (log/error ex "Failed to write transit+msgpack response body."))))
+      (throw (ex-info "Failed to write transit+msgpack response body."
+                      {:request request
+                       :body body
+                       :exception ex})))))
 
 (defn body-response
   [status request body]

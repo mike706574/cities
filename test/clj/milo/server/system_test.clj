@@ -4,10 +4,43 @@
             [clojure.test :refer [deftest testing is]]
             [manifold.stream :as s]
             [manifold.deferred :as d]
+            [milo.card :as card]
             [milo.game :as game]
+            [milo.menu :as menu]
             [milo.server.system :as system]
             [milo.server.message :refer [encode decode]]
             [taoensso.timbre :as log]))
+
+
+(def first-8
+  [(card/number :yellow 7)
+   (card/number :yellow 6)
+   (card/number :yellow 10)
+   (card/number :yellow 8)
+   (card/wager :yellow 3)
+   (card/number :green 3)
+   (card/wager :blue 3)
+   (card/number :green 10)])
+
+(def second-8
+  [(card/number :blue 3)
+   (card/number :yellow 2)
+   (card/number :blue 9)
+   (card/number :white 9)
+   (card/number :white 5)
+   (card/number :yellow 9)
+   (card/wager :white 2)
+   (card/wager :white 1)])
+
+(def last-4
+  [(card/number :yellow 4)
+   (card/number :blue 8)
+   (card/wager :red 2)
+   (card/wager :red 3)])
+
+(def deck-1 (concat first-8 second-8 last-4))
+
+(def test-game (game/game ["mike" "abby"] [deck-1 deck-1 deck-1] 4))
 
 (def config {:id "test" :port 10000})
 
@@ -44,29 +77,31 @@
           abby-conn @(http/websocket-client "ws://localhost:10000/menu-websocket")]
 
       (send! mike-conn "mike")
-      (is (= {:menu/status :state
-              :menu/state {:menu/games {},
-                           :menu/received-invites #{},
-                           :menu/sent-invites #{}}}
+      (is (= {::menu/status :state
+              ::menu/active-games {}
+              ::menu/completed-games {}
+              ::menu/received-invites #{},
+              ::menu/sent-invites #{}}
              (receive! mike-conn)))
 
       (send! abby-conn "abby")
-      (is (= {:menu/status :state
-              :menu/state {:menu/games {},
-                           :menu/received-invites #{},
-                           :menu/sent-invites #{}}}
+      (is (= {::menu/status :state
+              ::menu/active-games {},
+              ::menu/completed-games {},
+              ::menu/received-invites #{},
+              ::menu/sent-invites #{}}
              (receive! abby-conn)))
 
-      (send! mike-conn {:menu/status :send-invite :menu/player "abby"})
-      (is (= {:menu/status :sent-invite :menu/invite ["mike" "abby"]}
+      (send! mike-conn {::menu/status :send-invite ::menu/player "abby"})
+      (is (= {::menu/status :sent-invite ::menu/invite ["mike" "abby"]}
              (receive! mike-conn)))
 
-      (is (= {:menu/status :received-invite :menu/invite ["mike" "abby"]}
+      (is (= {::menu/status :received-invite ::menu/invite ["mike" "abby"]}
              (receive! abby-conn)))
 
-      (send! abby-conn {:menu/status :accept-invite :menu/player "mike"})
+      (send! abby-conn {::menu/status :accept-invite ::menu/player "mike"})
 
-      (let [{:keys [:menu/status :menu/game]} (receive! abby-conn)
+      (let [{:keys [::menu/status ::menu/game]} (receive! abby-conn)
             {:keys [::game/id
                     ::game/round-number
                     ::game/turn
@@ -77,7 +112,7 @@
         (is (contains? #{"mike" "abby"} turn))
         (is "mike" opponent))
 
-      (let [{:keys [:menu/status :menu/game]} (receive! mike-conn)
+      (let [{:keys [::menu/status ::menu/game]} (receive! mike-conn)
             {:keys [::game/id
                     ::game/round-number
                     ::game/turn

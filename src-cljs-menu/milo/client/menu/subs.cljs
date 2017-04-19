@@ -1,8 +1,10 @@
 (ns milo.client.menu.subs
-  (:require [re-frame.core :as rf]))
+  (:require [re-frame.core :as rf]
+            [milo.game :as game]
+            [milo.menu :as menu]))
 
 (rf/reg-sub
- :state
+ :db
  (fn [db _]
    db))
 
@@ -22,24 +24,34 @@
    (:app/status-message db)))
 
 (rf/reg-sub
- :games
+ :ready-games
+ (fn [{:keys [:app/player ::menu/active-games]} _]
+   (filter #(= (::game/turn %) player) active-games)))
+
+(rf/reg-sub
+ :waiting-games
+ (fn [{:keys [:app/player ::menu/active-games]} _]
+   (filter #(not= (::game/turn %) player) active-games)))
+
+(rf/reg-sub
+ :completed-games
  (fn [db _]
-   (:menu/games db)))
+   (::menu/completed-games db)))
 
 (rf/reg-sub
  :received-invites
  (fn [db _]
-   (:menu/received-invites db)))
+   (::menu/received-invites db)))
 
 (rf/reg-sub
  :sent-invites
  (fn [db _]
-   (:menu/sent-invites db)))
+   (::menu/sent-invites db)))
 
 (rf/reg-sub
  :messages
  (fn [db _]
-   (:menu/messages db)))
+   (::menu/messages db)))
 
 (rf/reg-sub
  :player

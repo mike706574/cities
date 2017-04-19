@@ -14,9 +14,7 @@
    (let [{:keys [:app/card :app/destination :app/source :app/player]} db
          move (move/move player card destination source)
          uri (str "/api/game/" (:app/game-id db))]
-     {:db (-> db
-              (assoc :app/loading? true)
-              (dissoc :app/move-message))
+     {:db (dissoc db :app/move-message)
       :http-xhrio {:method :put
                    :uri uri
                    :params move
@@ -31,18 +29,21 @@
  (fn [db [_ response]]
    (let [{status ::game/status game ::game/state} response]
      (if (= status :game-over)
-       (assoc db
-              :app/loading? false
-              :app/game game
-              :app/screen :game-over
-              :app/status-message "Gave over.")
-       (merge db {:app/card nil
-                  :app/game game
-                  :app/status-message (case status
-                                        :taken (str "You took a turn.")
-                                        :round-over (str "You took a turn and ended the round."))
-                  :app/destination :expedition
-                  :app/source :draw-pile})))))
+       (merge db {:app/game game
+                  :app/screen :game-over
+                  :app/status-message "You took a turn and ended the game."})
+       (let [screen (case status
+                      :round-over :round-over
+                      :taken :game)
+             status-message (case status
+                              :round-over "You took a turn and ended the round."
+                              :taken "You took a turn.")]
+         (merge db {:app/game game
+                    :app/screen screen
+                    :app/status-message status-message
+                    :app/card nil
+                    :app/destination :expedition
+                    :app/source :draw-pile}))))))
 
 (rf/reg-event-db
  :turn-rejected
@@ -85,7 +86,7 @@
          :app/player player
          :app/game-id game-id
          :app/screen :splash
-         :app/status-message "Authenticating..."})
+         :app/status-message "Loading page..."})
     {:app/screen :error
      :app/error-message "Failed to create socket."}))
 
@@ -101,13 +102,13 @@
    (set! (.-onmessage socket) handle-socket-event)
    (.send socket (encode {::player/id player
                           ::game/id game-id}))
-   (assoc db :app/status-message "Socket open.")))
+   (println "here")
+   db))
 
 (rf/reg-event-db
  :initialize-anonymous
  (fn [_ _]
    {:app/screen :player-selection
-    :app/loading? false
     :app/status-message "Selecting player."}))
 
 (rf/reg-event-db
@@ -158,3 +159,8 @@
    (assoc db
      :app/screen :error
      :app/error-message message)))
+
+(rf/reg-event-db
+ :round-screen
+ (fn [db [_ message]]
+   (assoc db :app/screen :game)))
