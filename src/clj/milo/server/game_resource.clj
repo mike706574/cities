@@ -10,63 +10,72 @@
             [milo.player :as player]
             [milo.server.connection :as conn]
             [milo.server.http :refer [body-response
-                                      non-websocket-response
-                                      not-acceptable
-                                      parsed-body
-                                      unsupported-media-type
-                                      missing-header]]
+                                      with-body
+                                      non-websocket-response]]
             [milo.server.message :refer [decode
                                          encode]]
             [milo.server.model :as model]
             [milo.server.util :as util]
             [taoensso.timbre :as log]))
 
+(defmacro if-not-let
+  ([bindings then]
+   `(if-let ~bindings ~then nil))
+  ([bindings then else]
+   (let [form (bindings 0) tst (bindings 1)]
+     `(let [temp# ~tst]
+        (if-not temp#
+          ~then
+          (let [~form temp#]
+            ~else))))))
+
+(defn turn-taken?
+  [status]
+  (contains? #{:taken :round-over :game-over} status))
+
 (defn take-turn
-  [{:keys [event-id games game-bus player-bus] :as deps} player request move]
+  [{:keys [event-id games] :as deps} player game-id move]
   (dosync
-   (let [game-id (get-in request [:params :id])]
-     (if-let [game (get @games game-id)]
-       (let [{status ::game/status game' ::game/game :as response} (game/take-turn game move)]
-         (let [opponent (game/opponent game player)]
-           (if (contains? #{:taken :round-over :game-over} status)
-             (let [event-id (swap! event-id inc)]
-               (log/debug (str "Turn taken - updating game."))
-               (alter games (fn [games] (assoc games game-id game')))
-               (bus/publish! game-bus [game-id opponent] {:milo/event-id event-id
-                                                          :milo/status status
-                                                          ::move/move move
-                                                          ::game/game game'})
-               (bus/publish! player-bus player {:milo/event-id event-id
-                                                :milo/status status
-                                                ::move/move move})
-               (bus/publish! player-bus opponent {:milo/event-id event-id
-                                                  :milo/status status
-                                                  ::move/move move})
-               (body-response 200 request {:milo/event-id event-id
-                                           :milo/status status
-                                           ::game/game (model/game-for player game')}))
-             (body-response 409 request {:milo/status status
-                                         :milo/event-id event-id}))))
-       (body-response 404 request {:milo/status :game-not-found
-                                   ::game/message (str "Game " game-id " not found.")})))))
+   (if-not-let [game (get @games game-id)]
+     {:milo/status :game-not-found}
+     (let [{status :milo.game/status
+            game' :milo.game/game} (game/take-turn game move)]
+       (if-not (turn-taken? status)
+         {:milo/status status}
+         (let [event-id (alter event-id inc)]
+           (alter games (fn [games] (assoc games game-id game')))
+           {:milo/status status
+            :milo/event-id event-id
+            :milo.game/game game'}))))))
 
 (defn handle-turn
-  [{:keys [games] :as deps} request]
-  (or (unsupported-media-type request)
-      (not-acceptable request)
-      (missing-header request "player")
-      (let [player (get-in request [:headers "player"])
-            move (parsed-body request)]
-        (if-not move
-          (body-response 400 request {:message "Invalid request body."})
-          (if-let [validation-failure (spec/explain-data ::move/move move)]
-            (body-response 400 request {:message "Invalid move."
-                                          :data validation-failure})
-            (let [move-player (::player/id move)]
-              (log/debug (str "Player: " player ", Move player: " move-player) )
-              (if-not (= player move-player)
-                (body-response 403 request {:message "Forbidden."})
-                (take-turn deps player request move))))))))
+  [{:keys [player-bus game-bus] :as deps} request]
+  (with-body [move :milo.move/move request]
+    (let [{{game-id :id} :params
+           {player "player"} :headers} request ]
+      (if-not (= player (:milo.player/id move))
+        (body-response 403 {:milo.server/message "Taking turns for other players is not allowed."})
+        (let [{status :milo/status
+               event-id :milo/event-id
+               game :milo.game/game} (take-turn deps player game-id move)]
+          (cond
+            (turn-taken? status) (let [opponent (game/opponent game player)
+                                       game-event {:milo/event-id event-id
+                                                   :milo/status status
+                                                   :milo.move/move move
+                                                   :milo.game/game game}
+                                       player-event {:milo/event-id event-id
+                                                     :milo/status status
+                                                     :milo.game/id game-id
+                                                     :milo.move/move move}]
+                                   (bus/publish! game-bus [game-id player] game-event)
+                                   (bus/publish! game-bus [game-id opponent] game-event)
+                                   (bus/publish! player-bus player player-event)
+                                   (bus/publish! player-bus opponent player-event)
+                                   (body-response 200 request game-event))
+            (= status :game-not-found) (body-response)
+            :else (body-response 409 request {:milo/status status
+                                              :milo.move/move move})))))))
 
 (defn update-existing
   [m k f]

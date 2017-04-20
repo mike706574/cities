@@ -1,8 +1,8 @@
 (ns milo.server.http
-  (:require [clojure.edn :as edn]
-            [clojure.string :as str]
+  (:require [cognitect.transit :as transit]
+            [clojure.edn :as edn]
             [clojure.set :as set]
-            [cognitect.transit :as transit]
+            [clojure.spec :as spec]
             [taoensso.timbre :as log]))
 
 (def supported-media-types #{"application/edn"
@@ -33,12 +33,6 @@
     {:status 406
      :headers {"Consumes" supported-media-types }}))
 
-(defn missing-header
-  [request header]
-  (when (str/blank? (get-in request [:headers header]))
-    {:status 400
-     :headers {"Missing-Required-Header" header}}))
-
 (defmulti parsed-body
   (fn [request]
     (get-in request [:headers "content-type"])))
@@ -65,8 +59,7 @@
       (log/error ex "Failed to parse transit+msgpack request body."))))
 
 (defmulti response-body
-  (fn
-    [request body]
+  (fn [request body]
     (get-in request [:headers "accept"])))
 
 (defmethod response-body "application/edn"
@@ -108,3 +101,15 @@
   {:status 400
    :headers {"content-type" "application/text"}
    :body "Expected a websocket request."})
+
+(defmacro with-body
+  [[body-sym body-spec request] & body]
+  `(or (unsupported-media-type ~request)
+       (not-acceptable ~request)
+       (let [~body-sym (parsed-body ~request)]
+          (if-not ~body-sym
+            (body-response 400 ~request {:milo.server/message "Invalid request body representation."})
+            (if-let [validation-failure# (spec/explain-data ~body-spec ~body-sym)]
+              (body-response 400 ~request {:milo.server/message "Invalid request body."
+                                           :milo.server/data validation-failure#})
+              ~@body)))))
