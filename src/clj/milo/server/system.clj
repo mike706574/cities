@@ -50,6 +50,7 @@
           (log/debug "Response!")
           response))
 
+   ;; TODO
    (POST "/api/game" request
          (let [response (menu-resource/accept-invite deps request)]
            (log/debug "Response!")
@@ -61,6 +62,7 @@
            (log/debug "Response!")
            response))
 
+   ;; TODO
    (DELETE "/api/invite/:opponent" request
          (log/debug "Delete invite!")
          (let [response (menu-resource/delete-invite deps request)]
@@ -170,10 +172,10 @@
 
 (defn system [config]
   (let [invites (ref #{})
-        games (ref {})
+        games (ref {"1" test-game})
         conns (atom {})
         conn-manager (conn/manager conns)
-        event-id (atom 0)
+        event-id (ref 0)
         deps {:games games
               :invites invites
               :event-id event-id

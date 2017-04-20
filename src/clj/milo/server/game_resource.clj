@@ -10,6 +10,7 @@
             [milo.player :as player]
             [milo.server.connection :as conn]
             [milo.server.http :refer [body-response
+                                      handle-exceptions
                                       with-body
                                       non-websocket-response]]
             [milo.server.message :refer [decode
@@ -46,36 +47,31 @@
            (alter games (fn [games] (assoc games game-id game')))
            {:milo/status status
             :milo/event-id event-id
+            :milo.move/move move
             :milo.game/game game'}))))))
 
 (defn handle-turn
   [{:keys [player-bus game-bus] :as deps} request]
-  (with-body [move :milo.move/move request]
-    (let [{{game-id :id} :params
-           {player "player"} :headers} request ]
-      (if-not (= player (:milo.player/id move))
-        (body-response 403 {:milo.server/message "Taking turns for other players is not allowed."})
-        (let [{status :milo/status
-               event-id :milo/event-id
-               game :milo.game/game} (take-turn deps player game-id move)]
-          (cond
-            (turn-taken? status) (let [opponent (game/opponent game player)
-                                       game-event {:milo/event-id event-id
-                                                   :milo/status status
-                                                   :milo.move/move move
-                                                   :milo.game/game game}
-                                       player-event {:milo/event-id event-id
-                                                     :milo/status status
-                                                     :milo.game/id game-id
-                                                     :milo.move/move move}]
-                                   (bus/publish! game-bus [game-id player] game-event)
-                                   (bus/publish! game-bus [game-id opponent] game-event)
-                                   (bus/publish! player-bus player player-event)
-                                   (bus/publish! player-bus opponent player-event)
-                                   (body-response 200 request game-event))
-            (= status :game-not-found) (body-response)
-            :else (body-response 409 request {:milo/status status
-                                              :milo.move/move move})))))))
+  (handle-exceptions request
+    (with-body [move :milo.move/move request]
+      (let [{{game-id :id} :params
+             {player "player"} :headers} request]
+        (if-not (= player (:milo.player/id move))
+          (body-response 403 request {:milo.server/message "Taking turns for other players is not allowed."})
+          (let [{status :milo/status :as response} (take-turn deps player game-id move)]
+            (cond
+              (turn-taken? status) (let [opponent (game/opponent (:milo.game/game response) player)
+                                         player-event (-> response
+                                                          (dissoc :milo.game/game)
+                                                          (assoc :milo.game/id game-id))]
+                                     (bus/publish! game-bus [game-id player] response)
+                                     (bus/publish! game-bus [game-id opponent] response)
+                                     (bus/publish! player-bus player player-event)
+                                     (bus/publish! player-bus opponent player-event)
+                                     (body-response 200 request response))
+              (= status :game-not-found) (body-response)
+              :else (body-response 409 request {:milo/status status
+                                                :milo.move/move move}))))))))
 
 (defn update-existing
   [m k f]

@@ -113,3 +113,11 @@
               (body-response 400 ~request {:milo.server/message "Invalid request body."
                                            :milo.server/data validation-failure#})
               ~@body)))))
+
+(defmacro handle-exceptions
+  [request & body]
+  `(try
+     ~@body
+     (catch Exception e#
+       (log/error e# "An exception was thrown while processing a request.")
+       (body-response 500 ~request {:milo.server/message "An error occurred."}))))

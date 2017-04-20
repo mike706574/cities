@@ -110,17 +110,21 @@
       deref
 
 )
+  (get-in (get @(:games system) "1") [::game/round ::game/player-data "mike"])
 
  (-> @(http/put "http://localhost:8001/api/game/1"
-                {:headers {"Content-Type" "application/transit+json"
-                           "Player" "abby"
+                {:headers {"Player" "mike"
+                           "Content-Type" "application/transit+json"
                            "Accept" "application/transit+json"}
-                 :body (message/encode (move/exp* "abby" (card/number :blue 5)))
+                 :body (message/encode (move/exp* "mike" (card/number :yellow 7)))
                  :throw-exceptions false})
      :body
      slurp
      message/decode
+
 )
+
+
 
 
  @(:invites system)

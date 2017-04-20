@@ -13,7 +13,9 @@
             [milo.score :as score]
             [milo.player :as player]
             [milo.server.connection :as conn]
-            [milo.server.http :refer [body-response
+            [milo.server.http :refer [with-body
+                                      handle-exceptions
+                                      body-response
                                       non-websocket-response
                                       not-acceptable
                                       parsed-body
@@ -24,27 +26,46 @@
             [taoensso.timbre :as log]))
 
 ;; REST-y functions, to replace websocket messages
-(defn send-invite
-  [{:keys [event-id invites player-bus]} request]
-  (dosync
-   (let [player (get-in request [:headers "player"])
-         opponent (::menu/opponent (parsed-body request))
-         to-invite [player opponent]
-         from-invite [opponent player]]
-     (cond
-       (contains? @invites to-invite) (body-response 409 request {::menu/status :already-invited})
-       (contains? @invites from-invite) (body-response 409 request {::menu/status :already-invited-by})
-       :else (let [event-id (swap! event-id inc)
-                   body {:milo/event-id event-id
-                             ::menu/status :sent-invite
-                             ::menu/invite to-invite}]
-               (alter invites conj to-invite)
-               (bus/publish! player-bus player body)
-               (bus/publish! player-bus opponent {:milo/event-id event-id
-                                                  ::menu/status :received-invite
-                                                  ::menu/invite to-invite})
-               (body-response 201 request body))))))
+;; (defn handle-turn
+;;   [{:keys [player-bus game-bus] :as deps} request]
 
+(spec/def ::invite (spec/cat :sender :milo.player/id :receiver :milo.player/id))
+
+(defn invite-already-exists
+  [invites player opponent]
+  (loop [[invite & tail] invites]
+    (when invite
+      (cond
+        (= invite [player opponent]) {:milo/status :already-sent-invite}
+        (= invite [opponent player]) {:milo/status :already-received-invite}
+        :else (recur tail)))))
+
+(defn send-invite
+  [{:keys [event-id invites]} invite]
+  (dosync
+   (or (invite-already-exists @invites invite)
+       (let [event-id (swap! event-id inc)]
+         (alter invites conj invite)
+         {:milo/event-id event-id
+          :milo/status :sent-invite
+          :milo.menu/invite invite}))))
+
+(defn handle-sending-invite
+  [{:keys [event-id invites player-bus] :as deps} request]
+  (handle-exceptions request
+    (with-body [invite ::invite request]
+      (let [[sender recipient] invite
+            player (get-in request [:headers "player"])]
+        (if-not (= player sender)
+          (body-response 403 request {:milo.server/message "Sending invites for other players is not allowed."})
+          (let [{status :milo/status :as response} (send-invite deps invite)]
+            (if (contains? #{:already-sent-invite :already-received-invite})
+              (body-response 409 request response)
+              (do (bus/publish! player-bus sender response)
+                  (bus/publish! player-bus recipient (assoc response :milo/status :received-invite))
+                  (body-response 201 request response)))))))))
+
+;; TODO: Delete and Accept
 (defn delete-invite
   [{:keys [event-id invites player-bus]} player request opponent]
   (dosync
