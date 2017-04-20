@@ -77,70 +77,29 @@
         :milo/event-id event-id
         :milo.menu/invite invite}))))
 
-(cond
-      (contains? invites to-invite) (let [event-id (swap! event-id inc)
-                                          body {:milo/event-id event-id
-                                                ::menu/status :canceled-invite
-                                                ::menu/invite to-invite}]
-
-                                      (bus/publish! player-bus player body)
-                                      (bus/publish! player-bus opponent {:milo/event-id event-id
-                                                                         ::menu/status :invite-canceled
-                                                                         ::menu/invite to-invite})
-                                      (body-response 202 request body))
-
-      (contains? invites from-invite) (let [event-id (swap! event-id inc)
-                                            body {:milo/event-id event-id
-                                                  ::menu/status :rejected-invite
-                                                  ::menu/invite from-invite}]
-                                        (alter invites disj from-invite)
-                                        (bus/publish! player-bus player body)
-                                        (bus/publish! player-bus opponent {:milo/event-id event-id
-                                                                           ::menu/status :invite-rejected
-                                                                           ::menu/invite from-invite})
-                                        (body-response 202 request body))
-      :else (body-response 404 request {::menu/status :invite-not-found
-                                        ::menu/opponent opponent}))
-
-;; TODO: Delete and Accept
 (defn handle-invite-deleting
   [{:keys [event-id invites player-bus] :as deps} request]
   (let [{{player "player"} :headers
-         {sender :sender recipient :recipient} :params} request]
-    (if-not (or (= player sender) (= player recipient))
+         {sender :sender recipient :recipient} :params} request
+        invite [sender recipient]
+        sender? (= player sender)]
+    (if-not (or sender? (= player recipient))
       (body-response 403 request {:milo.server/message "You can't delete other player's invites."})
       (let [{status :milo/status :as response} (delete-invite deps invite)]
+        (if (= status :invite-not-found)
+          (body-response 404 request {:milo/status :invite-not-found
+                                      :milo.menu/invite invite})
+          (let [sender-message (assoc response :milo/status (if sender?
+                                                              :sent-invite-canceled
+                                                              :sent-invite-rejected))
+                recipient-message (assoc response :milo/status (if sender?
+                                                                 :received-invite-cancelled
+                                                                 :received-invite-rejected))]
+            (bus/publish! player-bus sender sender-message)
+            (bus/publish! player-bus recipient recipient-message)
+            (body-response 202 request sender-message)))))))
 
-
-
-        )
-      )
-
-    (cond
-      (contains? invites to-invite) (let [event-id (swap! event-id inc)
-                                          body {:milo/event-id event-id
-                                                ::menu/status :canceled-invite
-                                                ::menu/invite to-invite}]
-                                      (alter invites disj to-invite)
-                                      (bus/publish! player-bus player body)
-                                      (bus/publish! player-bus opponent {:milo/event-id event-id
-                                                                         ::menu/status :invite-canceled
-                                                                         ::menu/invite to-invite})
-                                      (body-response 202 request body))
-
-      (contains? invites from-invite) (let [event-id (swap! event-id inc)
-                                            body {:milo/event-id event-id
-                                                  ::menu/status :rejected-invite
-                                                  ::menu/invite from-invite}]
-                                        (alter invites disj from-invite)
-                                        (bus/publish! player-bus player body)
-                                        (bus/publish! player-bus opponent {:milo/event-id event-id
-                                                                           ::menu/status :invite-rejected
-                                                                           ::menu/invite from-invite})
-                                        (body-response 202 request body))
-      :else (body-response 404 request {::menu/status :invite-not-found
-                                        ::menu/opponent opponent}))))
-
+;; TODO: Accept
 (defn accept-invite
   [{:keys [event-id games invites player-bus]} player request opponent]
   (or (unsupported-media-type request)
