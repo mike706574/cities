@@ -63,7 +63,7 @@
            response))
 
    ;; TODO
-   (DELETE "/api/invite/:opponent" request
+   (DELETE "/api/invite/:sender/:recipient" request
          (log/debug "Delete invite!")
          (let [response (menu-resource/delete-invite deps request)]
            (log/debug "Response!")

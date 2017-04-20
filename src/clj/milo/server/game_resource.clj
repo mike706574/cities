@@ -19,17 +19,6 @@
             [milo.server.util :as util]
             [taoensso.timbre :as log]))
 
-(defmacro if-not-let
-  ([bindings then]
-   `(if-let ~bindings ~then nil))
-  ([bindings then else]
-   (let [form (bindings 0) tst (bindings 1)]
-     `(let [temp# ~tst]
-        (if-not temp#
-          ~then
-          (let [~form temp#]
-            ~else))))))
-
 (defn turn-taken?
   [status]
   (contains? #{:taken :round-over :game-over} status))
