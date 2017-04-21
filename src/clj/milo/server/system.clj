@@ -50,22 +50,16 @@
           (log/debug "Response!")
           response))
 
-   ;; TODO
    (POST "/api/game" request
-         (let [response (menu-resource/accept-invite deps request)]
+         (let [response (menu-resource/handle-accepting-invite deps request)]
            (log/debug "Response!")
            response))
 
-   (POST "/api/invite" request
-         (log/debug "Invite request!")
-         (let [response (menu-resource/send-invite deps request)]
-           (log/debug "Response!")
-           response))
+   (POST "/api/invite" request (menu-resource/handle-sending-invite deps request))
 
-   ;; TODO
    (DELETE "/api/invite/:sender/:recipient" request
          (log/debug "Delete invite!")
-         (let [response (menu-resource/delete-invite deps request)]
+         (let [response (menu-resource/handle-deleting-invite deps request)]
            (log/debug "Response!")
            response))
 
@@ -172,7 +166,7 @@
 
 (defn system [config]
   (let [invites (ref #{})
-        games (ref {"1" test-game})
+        games (ref {})
         conns (atom {})
         conn-manager (conn/manager conns)
         event-id (ref 0)

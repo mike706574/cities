@@ -20,7 +20,6 @@
   (close-all! [this]
     (let [all-conns (flatten (vals @conns))
           conn-count (count all-conns)]
-      (log/debug all-conns)
       (when (pos? conn-count)
         (log/debug (str "Closing " conn-count " connections."))
         (doseq [entry all-conns]

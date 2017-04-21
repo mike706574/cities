@@ -56,69 +56,119 @@
   (let [out @(s/try-take! conn :drained 1000 :timeout)]
     (if (contains? #{:drained :timeout} out) out (decode out))))
 
+(defn flush!
+  [conn]
+  (loop [out :continue]
+    (when (not= out :timeout)
+      (recur @(s/try-take! conn :drained 10 :timeout)))))
+
 (defn send!
   [conn message]
   (s/put! conn (encode message)))
 
-(comment
-  (try
-    (with-system
-      (let [mike-conn @(http/websocket-client "ws://localhost:10000/menu-websocket")]
-        (send! mike-conn "mike")
-        (receive! mike-conn)))
-    (catch Exception ex
-      (log/debug (.getCause ex))))
+(defn parse
+  [request]
+  (if (contains? request :body)
+    (update request :body (comp decode slurp))
+    request))
 
-  )
+;; TODO: Handle errors
+(defn connect!
+  [id]
+  (let [conn @(http/websocket-client "ws://localhost:10000/menu-websocket")]
+    (send! conn id)
+    (flush! conn)
+    conn))
 
-(deftest inviting
+(deftest cancelling-an-invite
   (with-system
-    (let [mike-conn @(http/websocket-client "ws://localhost:10000/menu-websocket")
-          abby-conn @(http/websocket-client "ws://localhost:10000/menu-websocket")]
+    (let [mike-conn (connect! "mike")
+          abby-conn (connect! "abby")]
+      (dosync (alter (:invites system) conj ["mike" "abby"]))
+      (is (= #{["mike" "abby"]} @(:invites system)))
+      (let [{:keys [status body]} (parse @(http/delete "http://localhost:10000/api/invite/mike/abby"
+                                                     {:headers {"Player" "mike"
+                                                                "Content-Type" "application/transit+json"
+                                                                "Accept" "application/transit+json"}
+                                                      :throw-exceptions false}) )]
+        (is (= 200 status))
+        (is (= {:milo/event-id 1
+                :milo/status :sent-invite-canceled
+                :milo.menu/invite ["mike" "abby"]} body)))
+      (is (= #{} @(:invites system)))
+      (is (= {:milo/event-id 1
+              :milo/status :sent-invite-canceled
+              :milo.menu/invite ["mike" "abby"]} (receive! mike-conn)))
+      (is (= {:milo/event-id 1
+              :milo/status :received-invite-cancelled
+              :milo.menu/invite ["mike" "abby"]} (receive! abby-conn))))))
 
-      (send! mike-conn "mike")
-      (is (= {::menu/status :state
-              ::menu/active-games {}
-              ::menu/completed-games {}
-              ::menu/received-invites #{},
-              ::menu/sent-invites #{}}
-             (receive! mike-conn)))
+(deftest rejecting-an-invite
+  (with-system
+    (let [mike-conn (connect! "mike")
+          abby-conn (connect! "abby")]
+      (dosync (alter (:invites system) conj ["mike" "abby"]))
+      (is (= #{["mike" "abby"]} @(:invites system)))
+      (let [{:keys [status body]} (parse @(http/delete "http://localhost:10000/api/invite/mike/abby"
+                                                     {:headers {"Player" "abby"
+                                                                "Content-Type" "application/transit+json"
+                                                                "Accept" "application/transit+json"}
+                                                      :throw-exceptions false}) )]
+        (is (= 200 status))
+        (is (= {:milo/event-id 1
+                :milo/status :received-invite-rejected
+                :milo.menu/invite ["mike" "abby"]} body)))
+      (is (= #{} @(:invites system)))
+      (is (= {:milo/event-id 1
+              :milo/status :sent-invite-rejected
+              :milo.menu/invite ["mike" "abby"]} (receive! mike-conn)))
+      (is (= {:milo/event-id 1
+              :milo/status :received-invite-rejected
+              :milo.menu/invite ["mike" "abby"]} (receive! abby-conn))))))
 
-      (send! abby-conn "abby")
-      (is (= {::menu/status :state
-              ::menu/active-games {},
-              ::menu/completed-games {},
-              ::menu/received-invites #{},
-              ::menu/sent-invites #{}}
-             (receive! abby-conn)))
+(deftest sending-an-invite
+  (with-system
+    (let [mike-conn (connect! "mike")
+          abby-conn (connect! "abby")]
+      (is (= #{} @(:invites system)))
+      (let [{:keys [status body]} (parse @(http/post "http://localhost:10000/api/invite"
+                                                     {:headers {"Player" "mike"
+                                                                "Content-Type" "application/transit+json"
+                                                                "Accept" "application/transit+json"}
+                                                      :body (encode ["mike" "abby"])
+                                                      :throw-exceptions false}) )]
+        (is (= 201 status))
+        (is (= {:milo/event-id 1
+                :milo/status :sent-invite
+                :milo.menu/invite ["mike" "abby"]} body)))
+      (is (= #{["mike" "abby"]} @(:invites system)))
+      (is (= {:milo/event-id 1
+              :milo/status :sent-invite
+              :milo.menu/invite ["mike" "abby"]} (receive! mike-conn)))
+      (is (= {:milo/event-id 1
+              :milo/status :received-invite
+              :milo.menu/invite ["mike" "abby"]} (receive! abby-conn))))))
 
-      (send! mike-conn {::menu/status :send-invite ::menu/player "abby"})
-      (is (= {::menu/status :sent-invite ::menu/invite ["mike" "abby"]}
-             (receive! mike-conn)))
-
-      (is (= {::menu/status :received-invite ::menu/invite ["mike" "abby"]}
-             (receive! abby-conn)))
-
-      (send! abby-conn {::menu/status :accept-invite ::menu/player "mike"})
-
-      (let [{:keys [::menu/status ::menu/game]} (receive! abby-conn)
-            {:keys [::game/id
-                    ::game/round-number
-                    ::game/turn
-                    ::game/opponent]} game]
-        (is (= status :game-created))
-        (is (= "1" id))
-        (is (= 1 round-number))
-        (is (contains? #{"mike" "abby"} turn))
-        (is "mike" opponent))
-
-      (let [{:keys [::menu/status ::menu/game]} (receive! mike-conn)
-            {:keys [::game/id
-                    ::game/round-number
-                    ::game/turn
-                    ::game/opponent]} game]
-        (is (= status :game-created))
-        (is (= "1" id))
-        (is (= 1 round-number))
-        (is (contains? #{"mike" "abby"} turn))
-        (is "abby" opponent)))))
+(deftest accepting-an-invite
+  (with-system
+    (let [mike-conn (connect! "mike")
+          abby-conn (connect! "abby")]
+      (dosync (alter (:invites system) conj ["mike" "abby"]))
+      (let [{:keys [status body]} (parse @(http/post "http://localhost:10000/api/game"
+                                                     {:headers {"Player" "abby"
+                                                                "Content-Type" "application/transit+json"
+                                                                "Accept" "application/transit+json"}
+                                                      :body (encode ["mike" "abby"])
+                                                      :throw-exceptions false}) )]
+        (is (= 201 status))
+        (is (= {:milo/event-id 1
+                :milo/status :sent-invite
+                :milo.menu/invite ["mike" "abby"]}
+               (dissoc body :milo.game/game))))
+      (is (= #{["mike" "abby"]} @(:invites system)))
+      (is (= {:milo/event-id 1
+              :milo/status :sent-invite
+              :milo.menu/invite ["mike" "abby"]} (receive! mike-conn)))
+      (is (= {:milo/event-id 1
+              :milo/status :received-invite
+              :milo.menu/invite ["mike" "abby"]} (receive! abby-conn))))))

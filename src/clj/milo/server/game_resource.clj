@@ -69,7 +69,7 @@
                                      (bus/publish! player-bus player player-event)
                                      (bus/publish! player-bus opponent player-event)
                                      (body-response 200 request response))
-              (= status :game-not-found) (body-response)
+              (= status :game-not-found) (body-response 404 request response)
               :else (body-response 409 request {:milo/status status
                                                 :milo.move/move move}))))))))
 

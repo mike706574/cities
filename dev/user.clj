@@ -102,6 +102,12 @@
     (s/close! mike)
     (s/close! abby)))
 
+(defn parse
+  [request]
+  (if (contains? request :body)
+    (update request :body (comp message/decode slurp))
+    request))
+
 (comment
   @(http/get "http://localhost:8001/")
 
@@ -112,17 +118,28 @@
 )
   (get-in (get @(:games system) "1") [::game/round ::game/player-data "mike"])
 
- (-> @(http/put "http://localhost:8001/api/game/1"
-                {:headers {"Player" "mike"
-                           "Content-Type" "application/transit+json"
-                           "Accept" "application/transit+json"}
-                 :body (message/encode (move/exp* "mike" (card/number :yellow 7)))
-                 :throw-exceptions false})
-     :body
-     slurp
-     message/decode
+  @(:invites system)
 
-)
+
+  (parse @(http/post "http://localhost:8001/api/invite"
+                 {:headers {"Player" "mike"
+                            "Content-Type" "application/transit+json"
+                            "Accept" "application/transit+json"}
+                  :body (message/encode ["mike" "abby"])
+                  :throw-exceptions false}))
+
+
+
+  ;; take turn
+  (-> @(http/put "http://localhost:8001/api/game/1"
+                 {:headers {"Player" "mike"
+                            "Content-Type" "application/transit+json"
+                            "Accept" "application/transit+json"}
+                  :body (message/encode (move/exp* "mike" (card/number :yellow 7)))
+                  :throw-exceptions false})
+      :body
+      slurp
+      message/decode)
 
 
 
@@ -131,15 +148,25 @@
 
  (-> @(http/post "http://localhost:8001/api/invite"
                 {:headers {"Content-Type" "application/transit+json"
-                           "Player" "abby"
+                           "Player" "mike"
                            "Accept" "application/transit+json"}
+                 :body (message/encode ["mike" "abby"])
                  :throw-exceptions false})
      :body
      slurp
      message/decode
 )
 
+   (-> @(http/delete "http://localhost:8001/api/invite/mike/abby"
+                 {:headers {"Player" "abby"
+                            "Content-Type" "application/transit+json"
+                            "Accept" "application/transit+json"}
+                  :throw-exceptions false})
+        :body
+        slurp
+        message/decode
 
+)
 
 
    @(http/websocket-client "ws://localhost:8001/menu-websocket")

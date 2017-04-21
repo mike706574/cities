@@ -32,43 +32,47 @@
 (spec/def ::invite (spec/cat :sender :milo.player/id :receiver :milo.player/id))
 
 (defn invite-already-exists
-  [invites player opponent]
-  (loop [[invite & tail] invites]
-    (when invite
-      (cond
-        (= invite [player opponent]) {:milo/status :already-sent-invite}
-        (= invite [opponent player]) {:milo/status :already-received-invite}
-        :else (recur tail)))))
+  [invites invite]
+  (let [[sender recipient] invite]
+    (loop [[head & tail] invites]
+      (when head
+        (cond
+          (= head [sender recipient]) {:milo/status :invite-already-sent}
+          (= head [recipient sender]) {:milo/status :invite-already-received}
+          :else (recur tail))))))
 
 (defn send-invite
   [{:keys [event-id invites]} invite]
   (dosync
    (or (invite-already-exists @invites invite)
-       (let [event-id (swap! event-id inc)]
+       (let [event-id (alter event-id inc)]
          (alter invites conj invite)
          {:milo/event-id event-id
           :milo/status :sent-invite
           :milo.menu/invite invite}))))
 
 (defn handle-sending-invite
-  [{:keys [event-id invites player-bus] :as deps} request]
+  [{:keys [player-bus] :as deps} request]
   (handle-exceptions request
     (with-body [invite ::invite request]
       (let [[sender recipient] invite
             player (get-in request [:headers "player"])]
         (if-not (= player sender)
           (body-response 403 request {:milo.server/message "Sending invites for other players is not allowed."})
-          (let [{status :milo/status :as response} (send-invite deps invite)]
-            (if (contains? #{:already-sent-invite :already-received-invite})
+          (let [{status :milo/status event-id :milo/event-id :as response} (send-invite deps invite)]
+            (if (contains? #{:invite-already-sent :invite-already-received} status)
               (body-response 409 request response)
-              (do (bus/publish! player-bus sender response)
+              (do (log/debug (str "[#" event-id "] Sent invite " invite))
+                  (println sender ",,,," recipient)
+                  (bus/publish! player-bus sender response)
                   (bus/publish! player-bus recipient (assoc response :milo/status :received-invite))
                   (body-response 201 request response)))))))))
+
 
 (defn delete-invite
   [{:keys [event-id invites]} invite]
   (dosync
-   (if (contains? @invites invite)
+   (if-not (contains? @invites invite)
      {:milo/status :invite-not-found
       :milo.menu/invite invite}
      (let [event-id (alter event-id inc)]
@@ -77,62 +81,60 @@
         :milo/event-id event-id
         :milo.menu/invite invite}))))
 
-(defn handle-invite-deleting
-  [{:keys [event-id invites player-bus] :as deps} request]
-  (let [{{player "player"} :headers
-         {sender :sender recipient :recipient} :params} request
-        invite [sender recipient]
-        sender? (= player sender)]
-    (if-not (or sender? (= player recipient))
-      (body-response 403 request {:milo.server/message "You can't delete other player's invites."})
-      (let [{status :milo/status :as response} (delete-invite deps invite)]
-        (if (= status :invite-not-found)
-          (body-response 404 request {:milo/status :invite-not-found
-                                      :milo.menu/invite invite})
-          (let [sender-message (assoc response :milo/status (if sender?
-                                                              :sent-invite-canceled
-                                                              :sent-invite-rejected))
-                recipient-message (assoc response :milo/status (if sender?
-                                                                 :received-invite-cancelled
-                                                                 :received-invite-rejected))]
-            (bus/publish! player-bus sender sender-message)
-            (bus/publish! player-bus recipient recipient-message)
-            (body-response 202 request sender-message)))))))
+(defn handle-deleting-invite
+  [{:keys [player-bus] :as deps} request]
+  (handle-exceptions request
+    (let [{{player "player"} :headers
+           {sender :sender recipient :recipient} :params} request
+          invite [sender recipient]
+          sender? (= player sender)]
+      (if-not (or sender? (= player recipient))
+        (body-response 403 request {:milo.server/message "You can't delete other players' invites."})
+        (let [{status :milo/status :as response} (delete-invite deps invite)]
+          (if (= status :invite-not-found)
+            (body-response 404 request {:milo/status :invite-not-found
+                                        :milo.menu/invite invite})
+            (let [sender-message (assoc response :milo/status (if sender?
+                                                                :sent-invite-canceled
+                                                                :sent-invite-rejected))
+                  recipient-message (assoc response :milo/status (if sender?
+                                                                   :received-invite-cancelled
+                                                                   :received-invite-rejected))]
+              (bus/publish! player-bus sender sender-message)
+              (bus/publish! player-bus recipient recipient-message)
+              (body-response 200 request recipient-message))))))))
 
-;; TODO: Accept
 (defn accept-invite
-  [{:keys [event-id games invites player-bus]} player request opponent]
-  (or (unsupported-media-type request)
-      (not-acceptable request)
-      (let [player (get-in request [:headers "player"])
-            opponent (::menu/opponent (parsed-body request))
-            invite [opponent player]]
-        (dosync
-         (if-not (contains? invites invite)
-           (body-response 404 request {::menu/status :invite-not-found
-                                       ::menu/invite invite})
-           (let [event-id (swap! event-id inc)
-                 id (str (inc (count @games)))
-                 game (assoc (game/rand-game invite 4) ::game/id id)
-                 body {:milo/event-id event-id
-                       ::menu/status :game-created
-                       ::menu/game (model/game-summary-for player game)}]
-             (alter invites disj invite)
-             (alter games assoc id game)
-             (bus/publish! player-bus player body)
-             (bus/publish! player-bus opponent {:milo/event-id event-id
-                                                ::menu/status :game-created
-                                                ::menu/game (model/game-summary-for opponent game)})
-             (body-response 201 request body)))))))
-
-(defn cancel-invite
-  [{:keys [event-id games invites player-bus]} player request opponent]
+  [{:keys [event-id games invites]} invite]
+  (println "INVINV" invites)
   (dosync
-   (let [invite [player opponent]]
-     (if-not (contains? invites invite)
-       (body-response 409 request {::menu/status :no-invite-to-cancel
-                                   ::menu/invite invite})
-))))
+   (if-not (contains? @invites invite)
+     {:milo/status :invite-not-found}
+     (let [event-id (alter event-id inc)
+           id (str (inc (count @games)))
+           game (assoc (game/rand-game invite 4) :milo.game/id id)]
+       (alter invites disj invite)
+       (alter games assoc id game)
+       {:milo/event-id event-id
+        :milo/status :game-created
+        :milo.menu/game game}))))
+
+(defn handle-accepting-invite
+  [{:keys [player-bus] :as deps} request]
+  (handle-exceptions request
+    (with-body [invite ::invite request]
+      (let [{player "player"} (:headers request)
+            [sender recipient] invite]
+        (if-not (= player recipient)
+          (body-response 404 request {:milo.server/message "You can't accept invites for other players."})
+          (let [{status :milo/status :as response} (accept-invite deps invite)]
+            (if (= status :invite-not-found)
+              (body-response 409 request response)
+              (let [sender-message (update response :milo.game/game (partial :game/game-summary-for sender))
+                    recipient-message (update response :milo.game/game (partial :game/game-summary-for recipient))]
+                (bus/publish! player-bus sender sender-message)
+                (bus/publish! player-bus recipient recipient-message)
+                (body-response 201 request response)))))))))
 
 (defmulti process-message
   "Given a message, return all actions to be performed."
@@ -258,6 +260,7 @@
         (s/connect-via
          (bus/subscribe player-bus player)
          (fn [message]
+           (println "HELLO??")
            (log/debug (str "Preparing player message for " player " [" conn-id "]"))
            (log/trace "Message:" message)
            (s/put! conn (encode message)))
