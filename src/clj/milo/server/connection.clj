@@ -9,23 +9,23 @@
   (add! [this user type conn] "Add a connection.")
   (close-all! [this] "Closes all connections."))
 
-(defrecord AtomConnectionManager [conns]
+(defrecord AtomConnectionManager [counter connections]
   ConnectionManager
   (add! [this user type conn]
-    (let [id (util/uuid)]
-      (swap! conns #(update % user conj {:id id
+    (let [conn-id (swap! counter inc)]
+      (swap! connections #(update % user conj {:id conn-id
                                          :type type
                                          :conn conn}))
-      id))
+      conn-id))
   (close-all! [this]
-    (let [all-conns (flatten (vals @conns))
+    (let [all-conns (flatten (vals @connections))
           conn-count (count all-conns)]
       (when (pos? conn-count)
         (log/debug (str "Closing " conn-count " connections."))
         (doseq [entry all-conns]
-          (log/debug entry)
           (s/close! (:conn entry)))))))
 
 (defn manager
-  [conn-atom]
-  (AtomConnectionManager. conn-atom))
+  []
+  (component/using (map->AtomConnectionManager {:counter (atom 0)})
+    [:connections]))

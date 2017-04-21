@@ -2,7 +2,9 @@
   (:require [com.stuartsierra.component :as component]
             [taoensso.timbre :as log]
             [aleph.http :as aleph-http]
-            [milo.server.connection :as conn])
+
+            [milo.server.connection :as conn]
+            [milo.server.handler :as handler])
   (:gen-class :main true))
 
 (defn- already-started
@@ -11,10 +13,11 @@
   service)
 
 (defn- start-service
-  [{:keys [id port] :as service} handler]
+  [{:keys [id port] :as service} handler-factory]
   (log/info (str "Starting " id " on port " port "..."))
   (try
-    (let [server (aleph-http/start-server handler {:port port})]
+    (let [handler (handler/handler handler-factory)
+          server (aleph-http/start-server handler {:port port})]
       (log/info (str "Finished starting."))
       (assoc service :server server))
     (catch java.net.BindException e
@@ -33,12 +36,12 @@
   (log/info (str id " already stopped."))
   service)
 
-(defrecord AlephService [id port handler server conn-manager]
+(defrecord AlephService [id port handler-factory server conn-manager]
   component/Lifecycle
   (start [this]
     (if server
       (already-started this)
-      (start-service this handler)))
+      (start-service this handler-factory)))
   (stop [this]
     (if server
       (stop-service this)
@@ -51,4 +54,4 @@
          (> port 0)]}
   (component/using
    (map->AlephService config)
-   [:handler :conn-manager]))
+   [:handler-factory :conn-manager]))

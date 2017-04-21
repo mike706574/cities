@@ -26,9 +26,9 @@
    [milo.server.system :as system]
    [milo.server.message :as message]))
 
-(def config {:id "milo-server" :port 8001})
+(def config {:id "milo-server" :port 8002})
 
-(defonce system nil)
+(def system nil)
 
 (defn init
   "Creates and initializes the system under development in the Var
