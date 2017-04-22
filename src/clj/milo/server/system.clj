@@ -45,7 +45,7 @@
   {:player-bus (bus/event-bus)
    :game-bus (bus/event-bus)
 
-   :connections (ref {})
+   :connections (atom {})
    :events (ref {})
 
    :games (ref {})

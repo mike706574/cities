@@ -14,8 +14,8 @@
   (add! [this user type conn]
     (let [conn-id (swap! counter inc)]
       (swap! connections #(update % user conj {:id conn-id
-                                         :type type
-                                         :conn conn}))
+                                               :type type
+                                               :conn conn}))
       conn-id))
   (close-all! [this]
     (let [all-conns (flatten (vals @connections))

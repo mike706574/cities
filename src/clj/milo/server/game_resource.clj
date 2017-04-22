@@ -9,6 +9,7 @@
             [milo.card :as card]
             [milo.player :as player]
             [milo.server.connection :as conn]
+            [milo.server.event :as event]
             [milo.server.http :refer [body-response
                                       handle-exceptions
                                       with-body
@@ -35,7 +36,7 @@
   (contains? #{:taken :round-over :game-over} status))
 
 (defn take-turn
-  [{:keys [event-id games] :as deps} player game-id move]
+  [{:keys [event-manager games] :as deps} player game-id move]
   (dosync
    (if-not-let [game (get @games game-id)]
      {:milo/status :game-not-found}
@@ -43,12 +44,11 @@
             game' :milo.game/game} (game/take-turn game move)]
        (if-not (turn-taken? status)
          {:milo/status status}
-         (let [event-id (alter event-id inc)]
+         (let [event (event/store event-manager {:milo/status status
+                                                 :milo.move/move move
+                                                 :milo.game/game game'})]
            (alter games (fn [games] (assoc games game-id game')))
-           {:milo/status status
-            :milo/event-id event-id
-            :milo.move/move move
-            :milo.game/game game'}))))))
+           event))))))
 
 (defn handle-turn
   [{:keys [player-bus game-bus] :as deps} request]

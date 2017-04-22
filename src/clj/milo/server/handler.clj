@@ -126,7 +126,8 @@
   "Builds a request handler."
   (handler [this]))
 
-(defrecord MiloHandlerFactory [games invites game-bus player-bus event-manager conn-manager]
+(defrecord MiloHandlerFactory [games invites game-bus player-bus
+                               event-manager conn-manager]
   HandlerFactory
   (handler [this]
     (let [api (api-handler this)

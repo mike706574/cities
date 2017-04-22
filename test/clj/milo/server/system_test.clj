@@ -11,7 +11,6 @@
             [milo.server.message :refer [encode decode]]
             [taoensso.timbre :as log]))
 
-
 (def first-8
   [(card/number :yellow 7)
    (card/number :yellow 6)
@@ -53,7 +52,7 @@
 
 (defn receive!
   [conn]
-  (let [out @(s/try-take! conn :drained 1000 :timeout)]
+  (let [out @(s/try-take! conn :drained 2000 :timeout)]
     (if (contains? #{:drained :timeout} out) out (decode out))))
 
 (defn flush!
@@ -100,7 +99,7 @@
               :milo/status :sent-invite-canceled
               :milo.menu/invite ["mike" "abby"]} (receive! mike-conn)))
       (is (= {:milo/event-id 1
-              :milo/status :received-invite-cancelled
+              :milo/status :received-invite-canceled
               :milo.menu/invite ["mike" "abby"]} (receive! abby-conn))))))
 
 (deftest rejecting-an-invite
@@ -162,13 +161,24 @@
                                                       :throw-exceptions false}) )]
         (is (= 201 status))
         (is (= {:milo/event-id 1
-                :milo/status :sent-invite
-                :milo.menu/invite ["mike" "abby"]}
+                :milo/status :game-created}
                (dissoc body :milo.game/game))))
-      (is (= #{["mike" "abby"]} @(:invites system)))
-      (is (= {:milo/event-id 1
-              :milo/status :sent-invite
-              :milo.menu/invite ["mike" "abby"]} (receive! mike-conn)))
-      (is (= {:milo/event-id 1
-              :milo/status :received-invite
-              :milo.menu/invite ["mike" "abby"]} (receive! abby-conn))))))
+      (is (= #{} @(:invites system)))
+      (let [turn (get-in (get @(:games system) "1")
+                         [:milo.game/round :milo.game/turn])]
+        (is (= {:milo/status :game-created,
+                :milo.game/game #:milo.game{:id "1",
+                                            :opponent "abby",
+                                            :over? false,
+                                            :round-number 1,
+                                            :turn turn},
+                :milo/event-id 1}
+               (receive! mike-conn)))
+        (is (= {:milo/status :game-created,
+                :milo.game/game #:milo.game{:id "1",
+                                            :opponent "mike",
+                                            :over? false,
+                                            :round-number 1,
+                                            :turn turn},
+                :milo/event-id 1}
+               (receive! abby-conn)))))))
