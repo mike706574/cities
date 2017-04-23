@@ -51,7 +51,7 @@
 (rf/reg-sub
  :messages
  (fn [db _]
-   (::menu/messages db)))
+   (:messages db)))
 
 (rf/reg-sub
  :player

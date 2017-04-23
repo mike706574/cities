@@ -1,10 +1,11 @@
 (ns milo.client.menu.core
-  (:require [reagent.core :as reagent]
-            [re-frame.core :as rf]
+  (:require [day8.re-frame.http-fx]
             [taoensso.timbre :as log]
             [milo.client.menu.events]
             [milo.client.menu.subs]
-            [milo.client.menu.views :as views]))
+            [milo.client.menu.views :as views]
+            [reagent.core :as reagent]
+            [re-frame.core :as rf]))
 
 (enable-console-print!)
 

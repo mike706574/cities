@@ -79,7 +79,7 @@
     (update m k f)
     m))
 
-(defn websocket
+(defn handle
   [{:keys [conn-manager games game-bus] :as deps} req]
   (d/let-flow [conn (d/catch
                         (http/websocket-connection req)
@@ -111,4 +111,4 @@
 
 (defn websocket-handler
   [deps]
-  (partial websocket deps))
+  (partial handle deps))

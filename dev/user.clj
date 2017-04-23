@@ -26,7 +26,7 @@
    [milo.server.system :as system]
    [milo.server.message :as message]))
 
-(def config {:id "milo-server" :port 8002})
+(def config {:id "milo-server" :port 8001})
 
 (def system nil)
 

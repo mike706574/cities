@@ -41,25 +41,10 @@
 (defn api-routes
   [deps]
   (compojure/routes
-   (PUT "/api/game/:id" request
-        (log/debug "Turn request!")
-        (let [response (game-resource/handle-turn deps request)]
-          (log/debug "Response!")
-          response))
-
-   (POST "/api/game" request
-         (let [response (menu-resource/handle-accepting-invite deps request)]
-           (log/debug "Response!")
-           response))
-
+   (PUT "/api/game/:id" request (game-resource/handle-turn deps request))
+   (POST "/api/game" request (menu-resource/handle-accepting-invite deps request))
    (POST "/api/invite" request (menu-resource/handle-sending-invite deps request))
-
-   (DELETE "/api/invite/:sender/:recipient" request
-         (log/debug "Delete invite!")
-         (let [response (menu-resource/handle-deleting-invite deps request)]
-           (log/debug "Response!")
-           response))
-
+   (DELETE "/api/invite/:sender/:recipient" request (menu-resource/handle-deleting-invite deps request))
    (route/not-found {:status 200})))
 
 (defn api-handler
@@ -105,7 +90,7 @@
 
    (GET "/game-websocket" [] (game-resource/websocket-handler deps))
 
-   (GET "/menu-websocket" [] (menu-resource/handler deps))
+   (GET "/menu-websocket" [] (menu-resource/websocket-handler deps))
 
    (friend/logout (ANY "/logout" request
                        {:status 302
@@ -140,4 +125,5 @@
 (defn factory
   []
   (component/using (map->MiloHandlerFactory {})
-    [:games :invites :game-bus :player-bus :event-manager :conn-manager]))
+                   [:games :invites :game-bus :player-bus
+                    :event-manager :conn-manager]))

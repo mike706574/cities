@@ -86,10 +86,10 @@
       (dosync (alter (:invites system) conj ["mike" "abby"]))
       (is (= #{["mike" "abby"]} @(:invites system)))
       (let [{:keys [status body]} (parse @(http/delete "http://localhost:10000/api/invite/mike/abby"
-                                                     {:headers {"Player" "mike"
-                                                                "Content-Type" "application/transit+json"
-                                                                "Accept" "application/transit+json"}
-                                                      :throw-exceptions false}) )]
+                                                       {:headers {"Player" "mike"
+                                                                  "Content-Type" "application/transit+json"
+                                                                  "Accept" "application/transit+json"}
+                                                        :throw-exceptions false}))]
         (is (= 200 status))
         (is (= {:milo/event-id 1
                 :milo/status :sent-invite-canceled
@@ -109,10 +109,10 @@
       (dosync (alter (:invites system) conj ["mike" "abby"]))
       (is (= #{["mike" "abby"]} @(:invites system)))
       (let [{:keys [status body]} (parse @(http/delete "http://localhost:10000/api/invite/mike/abby"
-                                                     {:headers {"Player" "abby"
-                                                                "Content-Type" "application/transit+json"
-                                                                "Accept" "application/transit+json"}
-                                                      :throw-exceptions false}) )]
+                                                       {:headers {"Player" "abby"
+                                                                  "Content-Type" "application/transit+json"
+                                                                  "Accept" "application/transit+json"}
+                                                        :throw-exceptions false}) )]
         (is (= 200 status))
         (is (= {:milo/event-id 1
                 :milo/status :received-invite-rejected
