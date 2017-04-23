@@ -24,7 +24,10 @@
    [milo.move :as move]
    [milo.player :as player]
    [milo.server.system :as system]
-   [milo.server.message :as message]))
+   [milo.server.message :as message]
+   [taoensso.timbre :as log]))
+
+(log/set-level! :trace)
 
 (def config {:id "milo-server" :port 8001})
 
@@ -169,5 +172,5 @@
 )
 
 
-   @(http/websocket-client "ws://localhost:8001/menu-websocket")
+   (def x@(http/websocket-client "ws://localhost:8001/menu-websocket"))
   )

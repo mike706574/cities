@@ -11,26 +11,26 @@
 (rf/reg-sub
  :screen
  (fn [db _]
-   (:app/screen db)))
+   (:screen db)))
 
 (rf/reg-sub
  :loading?
  (fn [db _]
-   (:app/loading? db)))
+   (:loading? db)))
 
 (rf/reg-sub
  :status-message
  (fn [db _]
-   (:app/status-message db)))
+   (:status-message db)))
 
 (rf/reg-sub
  :ready-games
- (fn [{:keys [:app/player ::menu/active-games]} _]
+ (fn [{:keys [:player ::menu/active-games]} _]
    (filter #(= (::game/turn %) player) active-games)))
 
 (rf/reg-sub
  :waiting-games
- (fn [{:keys [:app/player ::menu/active-games]} _]
+ (fn [{:keys [:player ::menu/active-games]} _]
    (filter #(not= (::game/turn %) player) active-games)))
 
 (rf/reg-sub
@@ -56,9 +56,9 @@
 (rf/reg-sub
  :player
  (fn [db _]
-   (:app/player db)))
+   (:player db)))
 
 (rf/reg-sub
  :error-message
  (fn [db _]
-   (:app/error-message db)))
+   (:error-message db)))

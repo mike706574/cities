@@ -43,7 +43,7 @@
   (dosync
    (or (invite-already-exists @invites invite)
        (let [event (event/store event-manager {:milo/status :sent-invite
-                                               :milo.menu/invite invite})]
+                                               ::menu/invite invite})]
          (alter invites conj invite)
          event))))
 
@@ -68,9 +68,9 @@
   (dosync
    (if-not (contains? @invites invite)
      {:milo/status :invite-not-found
-      :milo.menu/invite invite}
+      ::menu/invite invite}
      (let [event (event/store event-manager {:milo/status :invite-deleted
-                                             :milo.menu/invite invite})]
+                                             ::menu/invite invite})]
        (alter invites disj invite)
        event))))
 
@@ -86,7 +86,7 @@
         (let [{status :milo/status :as response} (delete-invite deps invite)]
           (if (= status :invite-not-found)
             (body-response 404 request {:milo/status :invite-not-found
-                                        :milo.menu/invite invite})
+                                        ::menu/invite invite})
             (let [sender-message (assoc response :milo/status (if sender?
                                                                 :sent-invite-canceled
                                                                 :sent-invite-rejected))
@@ -103,10 +103,10 @@
    (if-not (contains? @invites invite)
      {:milo/status :invite-not-found}
      (let [id (str (inc (count @games)))
-           game (assoc (game/rand-game invite 4) :milo.game/id id)
+           game (assoc (game/rand-game invite 4) ::game/id id)
            event (event/store event-manager {:milo/status :game-created
-                                             :milo.game/game game
-                                             :milo.menu/invite invite})]
+                                             ::game/game game
+                                             ::menu/invite invite})]
        (alter invites disj invite)
        (alter games assoc id game)
        event))))
@@ -122,8 +122,8 @@
           (let [{status :milo/status :as response} (accept-invite deps invite)]
             (if (= status :invite-not-found)
               (body-response 409 request response)
-              (let [sender-message (update response :milo.game/game (partial model/game-summary-for sender))
-                    recipient-message (update response :milo.game/game (partial model/game-summary-for recipient))]
+              (let [sender-message (update response ::game/game (partial model/game-summary-for sender))
+                    recipient-message (update response ::game/game (partial model/game-summary-for recipient))]
                 (bus/publish! player-bus sender sender-message)
                 (bus/publish! player-bus recipient recipient-message)
                 (body-response 201 request response)))))))))
@@ -135,31 +135,29 @@
                         (constantly nil))]
     (if-not conn
       (non-websocket-response)
-      (d/let-flow [initial-message @(s/take! conn)]
-        (try
-          (let [player (decode initial-message)
-                state (model/menu-for player @games @invites)
-                state-message (assoc state :milo/status :state)
-                conn-id (conn/add! conn-manager player :menu conn)]
-            (log/debug (str "Player " player " connected to menu [" conn-id "]"))
-            ;; Give player current menu state
-            (s/put! conn (encode state-message))
-            ;; Player updates
-            (s/connect-via
-             (bus/subscribe player-bus player)
-             (fn [message]
-               (log/debug (str "Preparing player message for " player " [" conn-id "]"))
-               (log/trace "Message:" message)
-               (s/put! conn (encode message)))
-             conn)
-            (log/debug (str "Player " player " ("
-                            (count (::menu/games state)) " games, "
-                            (count (::menu/sent-invites state)) " sent invites, "
-                            (count (::menu/received-invites state)) " received invites) connected [" conn-id "]")))
-          {:status 101}
-          (catch Exception e
-            (log/error e (str "Exception thrown while establishing menu websocket connection. Initial message: " initial-message))
-            {:status 500}))))))
+      (let [conn-id (conn/add! conn-manager :menu conn)
+            conn-label (str "[menu-ws-conn-" conn-id "] ")]
+        (log/debug (str conn-label "Initial connection established."))
+        (d/let-flow [initial-message @(s/take! conn)]
+          (try
+            (let [player (decode initial-message)]
+              (log/debug (str conn-label "Connecting player \"" player "\"."))
+              ;; Give player current menu state
+              (let [state (model/menu-for player @games @invites)
+                    state-message (assoc state :milo/status :state)]
+                (s/put! conn (encode state-message)))
+              ;; Player updates
+              (s/connect-via
+               (bus/subscribe player-bus player)
+               (fn [message]
+                 (log/trace (str conn-label "Preparing message."))
+                 (s/put! conn (encode message)))
+               conn)
+              (log/debug (str conn-label "Connected player \"" player "\".")))
+            {:status 101}
+            (catch Exception e
+              (log/error e (str conn-label "Exception thrown while connecting player. Initial message: " initial-message))
+              {:status 500})))))))
 
 (defn websocket-handler
   [deps]

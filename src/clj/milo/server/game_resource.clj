@@ -61,16 +61,19 @@
           (let [{status :milo/status :as response} (take-turn deps player game-id move)]
             (cond
               (turn-taken? status) (let [opponent (game/opponent (:milo.game/game response) player)
+                                         game-response (assoc response :milo/status status)
                                          player-event (-> response
                                                           (dissoc :milo.game/game)
                                                           (assoc :milo.game/id game-id))]
-                                     (bus/publish! game-bus [game-id player] response)
-                                     (bus/publish! game-bus [game-id opponent] response)
+                                     (bus/publish! game-bus [game-id player] game-response)
+                                     (bus/publish! game-bus [game-id opponent] game-response)
                                      (bus/publish! player-bus player player-event)
                                      (bus/publish! player-bus opponent player-event)
-                                     (body-response 200 request response))
-              (= status :game-not-found) (body-response 404 request response)
-              :else (body-response 409 request {:milo/status status
+                                     (body-response 200 request game-response))
+              (= status :game-not-found) (body-response 404 request {:milo/status :game-not-found
+                                                                     :milo.game/id game-id})
+              :else (body-response 409 request {:milo/status :turn-not-taken
+                                                :milo.game/status status
                                                 :milo.move/move move}))))))))
 
 (defn update-existing
@@ -86,28 +89,32 @@
                         (fn [_] nil))]
     (if-not conn
       (non-websocket-response)
-      (let [conn-id (util/uuid)]
-        (log/debug (str "Connection " conn-id " established."))
-        (d/let-flow [id-body (decode @(stream/take! conn))
-                     {game-id ::game/id player ::player/id} id-body
-                     conn-id (conn/add! conn-manager player :game conn)]
-          (log/debug (str "Player " player " connected to game " game-id ". [" conn-id "]"))
-          ;; Give player current game state
-          (stream/put! conn (encode {::game/status :connected
-                                     ::game/game (model/game-for
-                                                   player
-                                                   (get @games game-id))}))
-          ;; Connect player to bus
-          (stream/connect-via
-           (bus/subscribe game-bus [game-id player])
-           (fn [message]
-             (log/trace (str "Preparing message for " player "..."))
-             (stream/put! conn (encode (update-existing
-                                        message
-                                        ::game/game
-                                        (partial model/game-for player)))))
-           conn)
-          {:status 101})))))
+      (let [conn-id (conn/add! conn-manager :game conn)
+            conn-label (str "[game-ws-conn-" conn-id "] ")]
+        (log/debug conn-label "Initial connection established.")
+        (d/let-flow [initial-message (decode @(stream/take! conn))]
+          (try
+            (let [{game-id ::game/id player ::player/id} initial-message]
+              (log/debug (str conn-label "Connecting player \"" player "\" to game " conn-id"."))
+              ;; Give player current game state
+              (let [state-message {:milo/status :connected
+                                   ::game/status :state
+                                   ::game/game (model/game-for player (get @games game-id))}]
+                (stream/put! conn (encode state-message)))
+              ;; Connect player to bus
+              (stream/connect-via
+               (bus/subscribe game-bus [game-id player])
+               (fn [message]
+                 (log/trace (str conn-label "Preparing message."))
+                 (stream/put! conn (encode (update-existing
+                                            message
+                                            ::game/game
+                                            (partial model/game-for player)))))
+               conn)
+              {:status 101})
+            (catch Exception e
+              (log/error e (str conn-label "Exception thrown while connecting player. Initial message: " initial-message))
+              {:status 500})))))))
 
 (defn websocket-handler
   [deps]

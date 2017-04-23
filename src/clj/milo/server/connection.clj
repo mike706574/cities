@@ -6,16 +6,16 @@
 
 (defprotocol ConnectionManager
   "Manages connections."
-  (add! [this user type conn] "Add a connection.")
+  (add! [this type conn] "Add a connection.")
   (close-all! [this] "Closes all connections."))
 
 (defrecord AtomConnectionManager [counter connections]
   ConnectionManager
-  (add! [this user type conn]
+  (add! [this type conn]
     (let [conn-id (swap! counter inc)]
-      (swap! connections #(update % user conj {:id conn-id
-                                               :type type
-                                               :conn conn}))
+      (swap! connections assoc conn-id {:id conn-id
+                                        :type type
+                                        :conn conn})
       conn-id))
   (close-all! [this]
     (let [all-conns (flatten (vals @connections))

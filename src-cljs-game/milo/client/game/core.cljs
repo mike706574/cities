@@ -9,7 +9,7 @@
             [milo.client.game.views :as views]))
 
 (enable-console-print!)
-(log/set-level! :info)
+(log/set-level! :debug)
 
 (defn db
   []

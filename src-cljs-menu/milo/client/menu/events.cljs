@@ -74,7 +74,9 @@
         (update :messages conj (str "You rejected "(first invite) "'s invite!")))))
 
 (defmethod handle-message :game-created
-  [{events :events :as db} {event-id :milo/event-id game :milo.game/game}]
+  [{events :events :as db} {event-id :milo/event-id
+
+                            game :milo.game/game}]
   (if (contains? events event-id)
     db
     (let [{:keys [::game/id ::game/opponent ::game/turn ::game/round-number]} game]
@@ -86,7 +88,7 @@
 
 (defmethod handle-message :error
   [db {error-message ::menu/error-message}]
-  (assoc db :app/screen :error :app/error-message :error-message))
+  (assoc db :screen :error :error-message :error-message))
 
 (defn decode
   [message]
@@ -99,10 +101,10 @@
 (rf/reg-event-fx
  :take-turn
  (fn [{:keys [db]} _]
-   (let [{:keys [:app/card :app/destination :app/source :app/player]} db
+   (let [{:keys [:card :destination :source :player]} db
          move (move/move player card destination source)
-         uri (str "/api/game/" (:app/game-id db))]
-     {:db (dissoc db :app/move-message)
+         uri (str "/api/game/" (:game-id db))]
+     {:db (dissoc db :move-message)
       :http-xhrio {:method :put
                    :uri uri
                    :params move
@@ -122,13 +124,13 @@
   [player]
   (if-let [socket (js/WebSocket. "ws://goose:8001/menu-websocket")]
     (do (set! (.-onopen socket) #(rf/dispatch [:socket-open]))
-        {:app/socket socket
-         :app/player player
-         :app/screen :splash
+        {:socket socket
+         :player player
+         :screen :splash
          :events #{}
-         :app/status-message "Loading page..."})
-    {:app/screen :error
-     :app/error-message "Failed to create socket."}))
+         :status-message "Loading page..."})
+    {:screen :error
+     :error-message "Failed to create socket."}))
 
 (rf/reg-event-db
  :initialize
@@ -139,9 +141,9 @@
 (defn display-menu
   [db]
   (assoc db
-         :app/status-message "Displaying menu."
-         :app/screen :menu
-         :app/loading? false))
+         :status-message "Displaying menu."
+         :screen :menu
+         :loading? false))
 
 (rf/reg-event-db
  :message
@@ -152,34 +154,34 @@
 
 (rf/reg-event-db
  :socket-open
- (fn [{:keys [:app/socket :app/player] :as db} _]
+ (fn [{:keys [:socket :player] :as db} _]
    (set! (.-onmessage socket) handle-socket-event)
    (.send socket (encode player))
-   (assoc db :app/status-message "Loading page...")))
+   (assoc db :status-message "Loading page...")))
 
 (rf/reg-event-db
  :initialize-anonymous
  (fn [db _]
    (log/info "Initializing anonymous!")
-   {:app/screen :player-selection
-    :app/loading? false
-    :app/status-message "Selecting player."}))
+   {:screen :player-selection
+    :loading? false
+    :status-message "Selecting player."}))
 
 (rf/reg-event-db
  :player-change
  (fn [db [_ player]]
-   (assoc db :app/player player)))
+   (assoc db :player player)))
 
 (rf/reg-event-db
  :error
  (fn [db [_ message]]
    (assoc db
-     :app/screen :error
-     :app/error-message message)))
+     :screen :error
+     :error-message message)))
 
 (rf/reg-event-db
  :sync
- (fn [{socket :app/socket :as db} _]
+ (fn [{socket :socket :as db} _]
    (log/info "Syncing!")
    (if socket
      (do (log/info "Syncing!")
@@ -189,9 +191,9 @@
 (rf/reg-event-fx
  :send-invite
  (fn [{db :db} [_ opponent]]
-   (let [player (:app/player db)
+   (let [player (:player db)
          invite [player opponent]]
-     {:db (dissoc db :app/move-message)
+     {:db (dissoc db :move-message)
       :http-xhrio {:method :post
                    :uri "/api/invite"
                    :headers {"Player" player}
@@ -210,15 +212,15 @@
  :failed-to-send-invite
  (fn [db [_ {status :status response :response :as failure}]]
    (cljs.pprint/pprint failure)
-   (merge db {:app/screen :error
-              :app/error-message response})))
+   (merge db {:screen :error
+              :error-message response})))
 
 (rf/reg-event-fx
  :cancel-invite
  (fn [{db :db} [_ opponent]]
-   (let [player (:app/player db)
+   (let [player (:player db)
          invite [player opponent]]
-     {:db (dissoc db :app/move-message)
+     {:db (dissoc db :move-message)
       :http-xhrio {:method :delete
                    :uri (str "/api/invite/" player "/" opponent)
                    :headers {"Player" player}
@@ -230,9 +232,9 @@
 (rf/reg-event-fx
  :reject-invite
  (fn [{db :db} [_ opponent]]
-   (let [player (:app/player db)
+   (let [player (:player db)
          invite [player opponent]]
-     {:db (dissoc db :app/move-message)
+     {:db (dissoc db :move-message)
       :http-xhrio {:method :delete
                    :uri (str "/api/invite/" opponent "/" player)
                    :headers {"Player" player}
@@ -250,16 +252,16 @@
  :failed-to-delete-invite
  (fn [db [_ {status :status response :response :as failure}]]
    (cljs.pprint/pprint failure)
-   (merge db {:app/screen :error
-              :app/error-message response})))
+   (merge db {:screen :error
+              :error-message response})))
 
 (rf/reg-event-fx
  :accept-invite
  (fn [{db :db} [_ opponent]]
-   (let [player (:app/player db)
+   (let [player (:player db)
          invite [opponent player]]
      (log/debug (str "Accepting invite:" invite))
-     {:db (dissoc db :app/move-message)
+     {:db (dissoc db :move-message)
       :http-xhrio {:method :post
                    :uri (str "/api/game")
                    :headers {"Player" player}

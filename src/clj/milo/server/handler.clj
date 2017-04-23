@@ -47,10 +47,23 @@
    (DELETE "/api/invite/:sender/:recipient" request (menu-resource/handle-deleting-invite deps request))
    (route/not-found {:status 200})))
 
+(defn wrap-logging
+  [handler]
+  (fn [{:keys [uri method] :as request}]
+    (let [label (str "PUT \"" uri "\"")]
+      (try
+        (let [{:keys [status] :as response} (handler request)]
+          (log/debug (str label " -> " status))
+          response)
+        (catch Exception e
+          (log/error e label)
+          {:status 500})))))
+
 (defn api-handler
   [deps]
   (-> (api-routes deps)
-      (wrap-defaults api-defaults)))
+      (wrap-defaults api-defaults)
+      (wrap-logging)))
 
 (defn site-routes
   [{:keys [games game-bus] :as deps}]

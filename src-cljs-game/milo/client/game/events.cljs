@@ -4,18 +4,59 @@
             [milo.game :as game]
             [milo.player :as player]
             [milo.move :as move]
-            [milo.client.game.message :as message]
             [re-frame.core :as rf]
             [taoensso.timbre :as log]))
+
+(defn pretty [x] (with-out-str (cljs.pprint/pprint x)))
+
+(defmulti handle-message
+  (fn [db message]
+    (log/debug "Received message: " (pretty message))
+    (:milo/status message)))
+
+(defmethod handle-message :connected
+  [db {game ::game/game}]
+  (log/debug "Connected!")
+  (if (game/game-over? game)
+    (assoc db
+           :game game
+           :loading? false
+           :screen :game-over
+           :status-message "Connected to completed game.")
+    (assoc db
+           :game game
+           :loading? false
+           :screen :game
+           :card nil
+           :destination :expedition
+           :source :draw-pile
+           :status-message "Connected to game.")))
+
+(defmethod handle-message :taken
+  [db {move ::move/move game ::game/game}]
+  (let [message (str (::player/id move) " took a turn.")]
+    (assoc db :game game :status-message message)))
+
+(defmethod handle-message :round-over
+  [db {move ::move/move game ::game/game}]
+  (let [message (str (::player/id move) " took a turn and ended the round.")]
+    (assoc db
+           :screen :round-over
+           :game game
+           :status-message message)))
+
+(defmethod handle-message :game-over
+  [db {move ::move/move game ::game/game}]
+  (let [message (str (::player/id move) " took a turn and ended the game.")]
+    (assoc db :game game :screen :game-over :status-message )))
 
 (rf/reg-event-fx
  :take-turn
  (fn [{:keys [db]} _]
-   (let [{:keys [:app/card :app/destination :app/source :app/player]} db
+   (let [{:keys [:card :destination :source :player]} db
          move (move/move player card destination source)
-         uri (str "/api/game/" (:app/game-id db))]
-     {:db (dissoc db :app/move-message)
-      :http-xhrio {:method :put
+         uri (str "/api/game/" (:game-id db))]
+     {:http-xhrio {:method :put
                    :uri uri
                    :params move
                    :headers {"Player" player}
@@ -27,41 +68,40 @@
 (rf/reg-event-db
  :turn-taken
  (fn [db [_ response]]
-   (let [{status ::game/status game ::game/state} response]
+   (let [{status :milo/status game ::game/game} response]
      (if (= status :game-over)
-       (merge db {:app/game game
-                  :app/screen :game-over
-                  :app/status-message "You took a turn and ended the game."})
+       (merge db {:game game
+                  :screen :game-over
+                  :status-message "You took a turn and ended the game."})
        (let [screen (case status
                       :round-over :round-over
                       :taken :game)
              status-message (case status
                               :round-over "You took a turn and ended the round."
                               :taken "You took a turn.")]
-         (merge db {:app/game game
-                    :app/screen screen
-                    :app/status-message status-message
-                    :app/card nil
-                    :app/destination :expedition
-                    :app/source :draw-pile}))))))
+         (-> db
+             (dissoc :move-message)
+             (merge {:game game
+                     :screen screen
+                     :status-message status-message
+                     :card nil
+                     :destination :expedition
+                     :source :draw-pile})))))))
 
 (rf/reg-event-db
  :turn-rejected
  (fn [db [_ {status :status response :response :as failure}]]
-   (cljs.pprint/pprint failure)
    (if-not (= status 409)
-     (merge db {:app/screen :error
-                :app/error-message response})
-     (let [message (case (::game/status response)
-                     :too-low "Too low!"
-
-                     :expedition-underway "Expedition already underway!"
-                     ;; TODO: These should never happen - handle them
-                     ;;       differently.
-                     :invalid-move "Invalid move!"
-                     :discard-empty "Discard empty!"
-                     :card-not-in-hand "Card not in hand!")]
-       (assoc db :app/move-message message)))))
+     (assoc db :screen :error :error-message response)
+     (if-not (= (:milo/status response) :turn-not-taken)
+       (assoc db :screen :error :error-message (with-out-str (cljs.pprint/pprint response)))
+       (let [message (case (:milo.game/status response)
+                       :too-low "Too low!"
+                       :expedition-underway "Expedition already underway!"
+                       :invalid-move "Invalid move!"
+                       :discard-empty "Discard empty!"
+                       :card-not-in-hand "Card not in hand!")]
+         (assoc db :move-message message))))))
 
 (defn decode
   [message]
@@ -82,34 +122,33 @@
   (log/debug "Starting websocket...")
   (if-let [socket (js/WebSocket. "ws://goose:8001/game-websocket")]
     (do (set! (.-onopen socket) #(rf/dispatch [:socket-open]))
-        {:app/socket socket
-         :app/player player
-         :app/game-id game-id
-         :app/screen :splash
-         :app/status-message "Loading page..."})
-    {:app/screen :error
-     :app/error-message "Failed to create socket."}))
+        {:socket socket
+         :player player
+         :game-id game-id
+         :screen :splash
+         :status-message "Loading page..."})
+    {:screen :error
+     :error-message "Failed to create socket."}))
 
 (rf/reg-event-db
  :message
  (fn [db [_ message]]
-   (message/handle db message)))
+   (handle-message db message)))
 
 (rf/reg-event-db
  :socket-open
- (fn [{:keys [:app/socket :app/player :app/game-id] :as db} _]
+ (fn [{:keys [:socket :player :game-id] :as db} _]
    (log/debug "Socket open! Authenticating as " player " for game " game-id ".")
    (set! (.-onmessage socket) handle-socket-event)
    (.send socket (encode {::player/id player
                           ::game/id game-id}))
-   (println "here")
    db))
 
 (rf/reg-event-db
  :initialize-anonymous
  (fn [_ _]
-   {:app/screen :player-selection
-    :app/status-message "Selecting player."}))
+   {:screen :player-selection
+    :status-message "Selecting player."}))
 
 (rf/reg-event-db
  :initialize
@@ -118,7 +157,7 @@
 
 (rf/reg-event-db
  :reinitialize
- (fn [{:keys [:app/player :app/game-id]} _]
+ (fn [{:keys [:player :game-id]} _]
    (connect player game-id)))
 
 (rf/reg-event-db
@@ -128,39 +167,39 @@
 (rf/reg-event-db
  :player-change
  (fn [db [_ player]]
-   (assoc db :app/player player)))
+   (assoc db :player player)))
 
 (rf/reg-event-db
  :destination-change
  (fn [db [_ destination]]
    (-> db
-       (assoc :app/destination destination)
-       (dissoc :app/move-message))))
+       (assoc :destination destination)
+       (dissoc :move-message))))
 
 (rf/reg-event-db
  :source-change
  (fn [db [_ source]]
    (-> db
-       (assoc :app/source source)
-       (dissoc :app/move-message))))
+       (assoc :source source)
+       (dissoc :move-message))))
 
 (rf/reg-event-db
  :card-change
  (fn [db [_ card]]
    (log/debug (str "Changing card to " card))
    (-> db
-       (assoc :app/card card)
-       (dissoc :app/move-message))))
+       (assoc :card card)
+       (dissoc :move-message))))
 
 (rf/reg-event-db
  :error
  (fn [db [_ message]]
    (log/error (str "Error: " message))
    (assoc db
-     :app/screen :error
-     :app/error-message message)))
+     :screen :error
+     :error-message message)))
 
 (rf/reg-event-db
  :round-screen
  (fn [db [_ message]]
-   (assoc db :app/screen :game)))
+   (assoc db :screen :game)))
