@@ -43,7 +43,7 @@
   (dosync
    (or (invite-already-exists @invites invite)
        (let [event (event/store event-manager {:milo/status :sent-invite
-                                               ::menu/invite invite})]
+                                               :milo/invite invite})]
          (alter invites conj invite)
          event))))
 
@@ -68,9 +68,9 @@
   (dosync
    (if-not (contains? @invites invite)
      {:milo/status :invite-not-found
-      ::menu/invite invite}
+      :milo/invite invite}
      (let [event (event/store event-manager {:milo/status :invite-deleted
-                                             ::menu/invite invite})]
+                                             :milo/invite invite})]
        (alter invites disj invite)
        event))))
 
@@ -86,7 +86,7 @@
         (let [{status :milo/status :as response} (delete-invite deps invite)]
           (if (= status :invite-not-found)
             (body-response 404 request {:milo/status :invite-not-found
-                                        ::menu/invite invite})
+                                        :milo/invite invite})
             (let [sender-message (assoc response :milo/status (if sender?
                                                                 :sent-invite-canceled
                                                                 :sent-invite-rejected))
@@ -106,7 +106,7 @@
            game (assoc (game/rand-game invite 4) ::game/id id)
            event (event/store event-manager {:milo/status :game-created
                                              ::game/game game
-                                             ::menu/invite invite})]
+                                             :menu/invite invite})]
        (alter invites disj invite)
        (alter games assoc id game)
        event))))
@@ -122,11 +122,11 @@
           (let [{status :milo/status :as response} (accept-invite deps invite)]
             (if (= status :invite-not-found)
               (body-response 409 request response)
-              (let [sender-message (update response ::game/game (partial model/game-summary-for sender))
-                    recipient-message (update response ::game/game (partial model/game-summary-for recipient))]
+              (let [sender-message (update response ::game/game (partial model/game-for sender))
+                    recipient-message (update response ::game/game (partial model/game-for recipient))]
                 (bus/publish! player-bus sender sender-message)
                 (bus/publish! player-bus recipient recipient-message)
-                (body-response 201 request response)))))))))
+                (body-response 201 request recipient-message)))))))))
 
 (defn handle
   [{:keys [games invites game-bus player-bus conn-manager] :as deps} req]
@@ -136,7 +136,7 @@
     (if-not conn
       (non-websocket-response)
       (let [conn-id (conn/add! conn-manager :menu conn)
-            conn-label (str "[menu-ws-conn-" conn-id "] ")]
+            conn-label (str "[ws-conn-" conn-id "] ")]
         (log/debug (str conn-label "Initial connection established."))
         (d/let-flow [initial-message @(s/take! conn)]
           (try

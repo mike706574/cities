@@ -101,9 +101,7 @@
         {:status 200
          :body "FOO"})
 
-   (GET "/game-websocket" [] (game-resource/websocket-handler deps))
-
-   (GET "/menu-websocket" [] (menu-resource/websocket-handler deps))
+   (GET "/websocket" [] (menu-resource/websocket-handler deps))
 
    (friend/logout (ANY "/logout" request
                        {:status 302

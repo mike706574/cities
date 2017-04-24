@@ -74,7 +74,7 @@
          active-games] (game-summaries-for player games)
         [sent-invites
          received-invites] (invites-for player invites)]
-    {::menu/completed-games completed-games
-     ::menu/active-games active-games
-     ::menu/sent-invites sent-invites
-     ::menu/received-invites received-invites}))
+    {:milo/completed-games completed-games
+     :milo/active-games active-games
+     :milo/sent-invites sent-invites
+     :milo/received-invites received-invites}))

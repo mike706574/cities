@@ -25,28 +25,28 @@
 
 (rf/reg-sub
  :ready-games
- (fn [{:keys [:player ::menu/active-games]} _]
+ (fn [{:keys [:player :milo/active-games]} _]
    (filter #(= (::game/turn %) player) active-games)))
 
 (rf/reg-sub
  :waiting-games
- (fn [{:keys [:player ::menu/active-games]} _]
+ (fn [{:keys [:player :milo/active-games]} _]
    (filter #(not= (::game/turn %) player) active-games)))
 
 (rf/reg-sub
  :completed-games
  (fn [db _]
-   (::menu/completed-games db)))
+   (:milo/completed-games db)))
 
 (rf/reg-sub
  :received-invites
  (fn [db _]
-   (::menu/received-invites db)))
+   (:milo/received-invites db)))
 
 (rf/reg-sub
  :sent-invites
  (fn [db _]
-   (::menu/sent-invites db)))
+   (:milo/sent-invites db)))
 
 (rf/reg-sub
  :messages
