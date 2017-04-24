@@ -132,6 +132,11 @@
         round-number @(rf/subscribe [:round-number])
         draw-count @(rf/subscribe [:draw-count])
         opponent @(rf/subscribe [:opponent])
+        available-discards @(rf/subscribe [:available-discards])
+        hand @(rf/subscribe [:hand])
+        move-message @(rf/subscribe [:move-message])
+        expeditions @(rf/subscribe [:expeditions])
+        opponent-expeditions @(rf/subscribe [:opponent-expeditions])
         turn? (= player turn)]
     [:div
      [:h3 "Game"]
@@ -141,23 +146,22 @@
      (if turn?
        [:div
         [:h5 "Hand"]
-        (active-hand-view @(rf/subscribe [:hand]))
+        (active-hand-view hand)
         [:h5 "Destination"]
         [destination-view]
         [:h5 "Sources"]
-        [source-view @(rf/subscribe [:available-discards])]
+        [source-view available-discards]
         (button (str "Take Turn") #(rf/dispatch [:take-turn]))
-        (when-let [move-message @(rf/subscribe [:move-message])]
-          [:p.red-text move-message])]
+        (when move-message [:p.red-text move-message])]
        [:div
         [:h5 "Hand"]
-        (inline-cards @(rf/subscribe [:hand]))
+        (inline-cards hand)
         [:h5 "Discards"]
-        (inline-cards @(rf/subscribe [:available-discards]))])
+        (inline-cards available-discards)])
      [:h5 "Your Expeditions"]
-     (expedition-table @(rf/subscribe [:expeditions]))
+     (expedition-table expeditions)
      [:h5 (str opponent "'s Expeditions")]
-     (expedition-table @(rf/subscribe [:opponent-expeditions]))]))
+     (expedition-table opponent-expeditions)]))
 
 (defn expedition-score-tables
   [round player opponent]
@@ -209,31 +213,23 @@
      [button "Play" #(rf/dispatch [:round-screen])]
      (expedition-score-tables round player opponent)]))
 
-(defn splash
-  []
-  [:p @(rf/subscribe [:status-message])])
+(defn splash []
+  [:h5 @(rf/subscribe [:status-message])])
 
 (defn error
   []
   [:div
-   [:h1 "Error!"]
-   [:p @(rf/subscribe [:error-message])]])
+   [:h5 "Error!"]
+   [:p (str@(rf/subscribe [:error-message]))]])
 
 (defn app
   []
   (let [screen @(rf/subscribe [:screen])]
-    (if (= screen :splash)
-      [splash]
-      [:div
-       [:nav
-        [:a {:href "/"} "Menu"]
-        " "
-        [:a {:href "/logout"} "Log out"]]
-       [:p (str "Logged in as " @(rf/subscribe [:player]))]
-       (case screen
-         :player-selection [player-selection]
-         :game [game]
-         :round-over [round-over]
-         :game-over [game-over]
-         :error [error]
-         (throw (js/Error. (str "Invalid screen: " screen))))])))
+    (case screen
+      :splash [splash]
+      :player-selection [player-selection]
+      :game [game]
+      :round-over [round-over]
+      :game-over [game-over]
+      :error [error]
+      (throw (js/Error. (str "Invalid screen: " screen))))))

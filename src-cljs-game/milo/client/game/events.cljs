@@ -92,9 +92,9 @@
  :turn-rejected
  (fn [db [_ {status :status response :response :as failure}]]
    (if-not (= status 409)
-     (assoc db :screen :error :error-message response)
+     (assoc db :screen :error :error-message (pretty response))
      (if-not (= (:milo/status response) :turn-not-taken)
-       (assoc db :screen :error :error-message (with-out-str (cljs.pprint/pprint response)))
+       (assoc db :screen :error :error-message (pretty response))
        (let [message (case (:milo.game/status response)
                        :too-low "Too low!"
                        :expedition-underway "Expedition already underway!"

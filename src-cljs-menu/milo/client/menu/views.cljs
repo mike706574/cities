@@ -8,10 +8,11 @@
 
 (defn button
   [label on-click]
-  [:input.btn.btn-default
-   {:type "button"
-    :value label
-    :on-click  on-click}])
+                  [:a]
+  [:button.mdl-button.mdl-button--raised
+   {:value label
+    :on-click  on-click}
+   label])
 
 (defn player-selection
   []
@@ -22,92 +23,103 @@
 
 (defn splash
   []
-  [:p @(rf/subscribe [:status-message])])
+  [:h5 @(rf/subscribe [:status-message])])
 
-(defn headed-list
-  [label f coll]
-  (letfn [(li [index item]
-            [:li {:key index} (f item)])]
-    [:div
-     [:h3 (str/capitalize label)]
-     (if (empty? coll)
-       [:span "No " label "."]
-       [:ul (map-indexed li coll)])]))
-
-(defn game-item
-  [game player]
-  (let [{:keys [::game/id ::game/opponent ::game/turn]} game]
-    [:div
-     [:span
-      [:em opponent]
-      " "
-      [:a {:href (str "/game/" id)} "Go"]]]))
-
-(defn active-game-list
-  [games player]
-  (if (empty? games)
-    [:p "No games!"]
-    [:ul
-     (for [[id game] games]
-       [:li {:key id} (game-item game player)])]))
-
-(defn ready-games
+(defn sent-invites
   []
-  [:div
-   [:h3 "Your Turn"]
-   (active-game-list @(rf/subscribe [:ready-games])
-                     @(rf/subscribe [:player]))])
+  (let [invites @(rf/subscribe [:sent-invites])]
+    (letfn [(list-item [index invite]
+              [:li.mdl-list__item {:key index}
+               [:span.mdl-list__item-primary-content
+                (str "You invited " (second invite) " to play.")]
+               [:span.mdl-list__item-secondary-content
+                (button "Cancel" #(rf/dispatch [:cancel-invite (second invite)]))]])]
+      [:div
+       [:h5 "Sent Invites"]
+       (if (empty? invites)
+         [:span "No invites sent."]
+         [:ul.demo-list-item.mdl-list
+          (map-indexed list-item invites)])])))
 
-(defn waiting-games
+(defn received-invites
   []
-  [:div
-   [:h3 "Their Turn"]
-   (active-game-list @(rf/subscribe [:waiting-games])
-                     @(rf/subscribe [:player]))])
+  (let [invites @(rf/subscribe [:received-invites])]
+    (letfn [(list-item [index invite]
+              [:li.mdl-list__item {:key index}
+               [:span.mdl-list__item-primary-content
+                (str (first invite) " invited you to play.")]
+               [:span.mdl-list__item-secondary-content
+                (button "ACcept" #(rf/dispatch [:accept-invite (first invite)]))]
+               [:span.mdl-list__item-secondary-content
+                (button "Reject" #(rf/dispatch [:reject-invite (first invite)]))]])]
+      [:div
+       [:h5 "Received Invites"]
+       (if (empty? invites)
+         [:p "You have no invites."]
+         [:ul.demo-list-item.mdl-list
+          (map-indexed list-item invites)])])))
+
+(defn game-list
+  [games]
+  (letfn [(game-item [[id game]]
+            (let [{:keys [::game/opponent]} game]
+              [:li.mdl-list__item
+               {:key id}
+               [:span.mdl-list__item-primary-content
+                [:i.material-icons.mdl-list__item-avatar "person"]
+                opponent]
+               [:span.mdl-list__item-secondary-action
+                [:a.mdl-button.mdl-button--raised
+                 {:href (str "/game/" id)}
+                 "Play"]]]))]
+    [:ul.demo-list-control.mdl-list
+     (map game-item games)]))
+
+(defn ready-games []
+  (let [games @(rf/subscribe [:ready-games])]
+    (when-not (empty? games)
+      [:div
+       [:h5 "Your turn"]
+       (game-list games)])))
+
+(defn waiting-games []
+  (let [games @(rf/subscribe [:waiting-games])]
+    (when-not (empty? games)
+      [:div
+       [:h5 "Their turn"]
+       (game-list games)])))
 
 (defn menu
   []
   (let [player @(rf/subscribe [:player])
-        other-player (case player "mike" "abby" "abby" "mike")]
+        other-player (case player
+                       "mike" "abby"
+                       "abby" "mike")]
       [:div
        [ready-games]
        [waiting-games]
-       [button (str "Invite " other-player) #(rf/dispatch [:send-invite other-player])]
-       (headed-list
-        "Invites"
-        (fn [[_ opponent :as request]]
-          [:div
-           (str "You invited " (second request) " to play. ")
-           (button "Cancel" #(rf/dispatch [:cancel-invite opponent]))])
-        @(rf/subscribe [:sent-invites]))
-       (headed-list
-        "Requests"
-        (fn [[opponent :as request]]
-          [:div
-           (str (first request) " invited you to play. ")
-           (button "Accept" #(rf/dispatch [:accept-invite opponent]))
-           " "
-           (button "Reject" #(rf/dispatch [:reject-invite opponent]))])
-        @(rf/subscribe [:received-invites]))
-       (headed-list "messages" str @(rf/subscribe [:messages]))]))
+       [received-invites]
+       [button (str "Invite " other-player " to play") #(rf/dispatch [:send-invite other-player])]
+       [sent-invites]
+       [:h5 "Messages"]
+       [:ul
+        (map-indexed
+         (fn [index message]
+           [:li {:key index} message])
+         @(rf/subscribe [:messages]))]]))
 
 (defn error
   []
   [:div
-   [:h1 "Error!"]
-   [:p @(rf/subscribe [:error-message])]])
+   [:h5 "Error!"]
+   [:p (str @(rf/subscribe [:error-message]))]])
 
 (defn app
   []
   (let [screen @(rf/subscribe [:screen])]
-    (if (= screen :splash)
-      [splash]
-      [:div
-       [:nav
-        [:a {:href "/logout"} "Log out"]]
-       [:p (str "Logged in as " @(rf/subscribe [:player]))]
-       (case screen
-         :player-selection [player-selection]
-         :menu [menu]
-         :error [error]
-         (throw (js/Error. (str "Invalid screen: " screen))))])))
+    (case screen
+      :splash [splash]
+      :player-selection [player-selection]
+      :menu [menu]
+      :error [error]
+      (throw (js/Error. (str "Invalid screen: " screen))))))

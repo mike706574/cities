@@ -1,12 +1,13 @@
 (ns milo.client.menu.core
   (:require [day8.re-frame.http-fx]
-            [taoensso.timbre :as log]
             [milo.client.menu.events]
             [milo.client.menu.subs]
             [milo.client.menu.views :as views]
             [reagent.core :as reagent]
-            [re-frame.core :as rf]))
+            [re-frame.core :as rf]
+            [taoensso.timbre :as log]))
 
+(log/set-level! :debug)
 (enable-console-print!)
 
 (defn db

@@ -70,7 +70,7 @@
     db
     (-> db
         (update :events conj event-id)
-        (update ::menu/received-invite disj invite)
+        (update ::menu/received-invites disj invite)
         (update :messages conj (str "You rejected "(first invite) "'s invite!")))))
 
 (defmethod handle-message :game-created
@@ -260,7 +260,7 @@
  (fn [{db :db} [_ opponent]]
    (let [player (:player db)
          invite [opponent player]]
-     (log/debug (str "Accepting invite:" invite))
+     (log/debug (str "Accepting invite: " invite))
      {:db (dissoc db :move-message)
       :http-xhrio {:method :post
                    :uri (str "/api/game")
