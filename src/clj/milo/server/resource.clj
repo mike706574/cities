@@ -1,4 +1,4 @@
-(ns milo.server.menu-resource
+(ns milo.server.resource
   (:require [aleph.http :as http]
             [clojure.spec :as spec]
             [clojure.spec.test :as stest]
@@ -17,7 +17,6 @@
             [milo.server.http :refer [with-body
                                       handle-exceptions
                                       body-response
-                                      non-websocket-response
                                       not-acceptable
                                       parsed-body
                                       unsupported-media-type]]
@@ -128,37 +127,71 @@
                 (bus/publish! player-bus recipient recipient-message)
                 (body-response 201 request recipient-message)))))))))
 
-(defn handle
-  [{:keys [games invites game-bus player-bus conn-manager] :as deps} req]
-  (d/let-flow [conn (d/catch
-                        (http/websocket-connection req)
-                        (constantly nil))]
-    (if-not conn
-      (non-websocket-response)
-      (let [conn-id (conn/add! conn-manager :menu conn)
-            conn-label (str "[ws-conn-" conn-id "] ")]
-        (log/debug (str conn-label "Initial connection established."))
-        (d/let-flow [initial-message @(s/take! conn)]
-          (try
-            (let [player (decode initial-message)]
-              (log/debug (str conn-label "Connecting player \"" player "\"."))
-              ;; Give player current menu state
-              (let [state (model/menu-for player @games @invites)
-                    state-message (assoc state :milo/status :state)]
-                (s/put! conn (encode state-message)))
-              ;; Player updates
-              (s/connect-via
-               (bus/subscribe player-bus player)
-               (fn [message]
-                 (log/trace (str conn-label "Preparing message."))
-                 (s/put! conn (encode message)))
-               conn)
-              (log/debug (str conn-label "Connected player \"" player "\".")))
-            {:status 101}
-            (catch Exception e
-              (log/error e (str conn-label "Exception thrown while connecting player. Initial message: " initial-message))
-              {:status 500})))))))
+(defmacro if-not-let
+  ([bindings then]
+   `(if-let ~bindings ~then nil))
+  ([bindings then else]
+   (let [form (bindings 0) tst (bindings 1)]
+     `(let [temp# ~tst]
+        (if-not temp#
+          ~then
+          (let [~form temp#]
+            ~else))))))
 
-(defn websocket-handler
-  [deps]
-  (partial handle deps))
+(defn turn-taken?
+  [status]
+  (contains? #{:taken :round-over :game-over} status))
+
+(defn take-turn
+  [{:keys [event-manager games] :as deps} player game-id move]
+  (dosync
+   (if-not-let [game (get @games game-id)]
+     {:milo/status :game-not-found}
+     (let [{status :milo.game/status
+            game' :milo.game/game} (game/take-turn game move)]
+       (if-not (turn-taken? status)
+         {:milo/status status
+          :milo.game/id game-id}
+         (let [event (event/store event-manager {:milo/status status
+                                                 :milo.game/game game'})]
+           (alter games (fn [games] (assoc games game-id game')))
+           event))))))
+
+(defn handle-turn
+  [{:keys [player-bus] :as deps} request]
+  (handle-exceptions request
+    (with-body [move :milo.move/move request]
+      (let [{{game-id :id} :params
+             {player "player"} :headers} request]
+        (if-not (= player (:milo.player/id move))
+          (body-response 403 request {:milo.server/message "Taking turns for other players is not allowed."})
+          (let [{status :milo/status game :milo.game/game} (take-turn deps player game-id move)]
+            (cond
+              (turn-taken? status) (let [response {:milo/status status
+                                                   :milo.game/id game-id
+                                                   :milo.move/move move
+                                                   :milo.game/game game}
+                                         opponent (game/opponent (:milo.game/game response) player)]
+                                     (bus/publish! player-bus player (model/game-for player game))
+                                     (bus/publish! player-bus opponent (model/game-for player game))
+                                     (body-response 200 request response))
+              (= status :game-not-found) (body-response 404 request {:milo/status :game-not-found
+                                                                     :milo.game/id game-id})
+              :else (body-response 409 request {:milo/status :turn-not-taken
+                                                :milo.game/id game-id
+                                                :milo.game/status status
+                                                :milo.move/move move}))))))))
+
+
+(defn handle-retrieval
+  [{:keys [games] :as deps} request]
+  (handle-exceptions request
+    (or (not-acceptable request)
+        (let [{{game-id :id} :params
+               {player "player"} :headers} request]
+          (if-let [game (get @games game-id)]
+            (body-response 200 request {:milo/status :game-found
+                                        :milo.game/id game-id
+                                        :milo.game/game (model/game-for player game)} )
+            (body-response 404 request {:milo/status :game-not-found
+                                        :milo.game/id game-id}))))))

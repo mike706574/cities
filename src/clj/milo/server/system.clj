@@ -2,8 +2,6 @@
   (:require [manifold.bus :as bus]
             [milo.game :as game]
             [milo.card :as card]
-            [milo.server.game-resource :as game-resource]
-            [milo.server.menu-resource :as menu-resource]
             [milo.server.handler :as handler]
             [milo.server.event :as event]
             [milo.server.connection :as conn]

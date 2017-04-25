@@ -14,9 +14,12 @@
     :on-click  on-click}
    label])
 
-(defn active-hand-view
-  [hand]
-  (let [selected-card @(rf/subscribe [:card])]
+(defn menu-button []
+  [:button "Back" #(rf/dispatch [:show-menu])])
+
+(defn active-hand []
+  (let [hand @(rf/subscribe [:hand])
+        selected-card @(rf/subscribe [:card])]
     [:ul.no-space
      (map-indexed
       (fn [index card]
@@ -32,7 +35,7 @@
       hand)]))
 
 (defn inline-cards
-  [hand]
+  [cards]
   [:ul.no-space
    (map-indexed
     (fn [index card]
@@ -42,7 +45,10 @@
        [:span
         {:class (name (::card/color card))}
         (card/str-card card)]])
-    hand)])
+    cards)])
+
+(defn inactive-hand []
+  (inline-cards @(rf/subscribe [:hand])))
 
 (defn stack-table
   [stacks show-scores?]
@@ -76,8 +82,7 @@
   [expeditions]
   (stack-table expeditions true))
 
-(defn destination-view
-  []
+(defn destination []
   (let [destination @(rf/subscribe [:destination])]
     [:ul.no-space
      [:li {:key :play
@@ -93,9 +98,9 @@
                :on-change #(rf/dispatch [:destination-change :discard-pile])}]
       [:span.black "discard"]]]))
 
-(defn source-view
-  [available-discards]
-  (let [source @(rf/subscribe [:source])]
+(defn source []
+  (let [available-discards @(rf/subscribe [:available-discards])
+        source @(rf/subscribe [:source])]
     [:ul.no-space
      [:li {:key :draw-pile
            :style {"display" "inline"}}
@@ -125,30 +130,29 @@
         round-number @(rf/subscribe [:round-number])
         draw-count @(rf/subscribe [:draw-count])
         opponent @(rf/subscribe [:opponent])
-        available-discards @(rf/subscribe [:available-discards])
-        hand @(rf/subscribe [:hand])
         move-message @(rf/subscribe [:move-message])
         expeditions @(rf/subscribe [:expeditions])
         opponent-expeditions @(rf/subscribe [:opponent-expeditions])
         turn? (= player turn)]
     [:div
+     [:menu-button]
      [:h3 (str "Round " round-number " versus " opponent)]
      [:p (str "There are " draw-count " cards left. It's " (if turn? "your" (str opponent "'s")) " turn. ")]
      (if turn?
        [:div
         [:h5 "Hand"]
-        (active-hand-view hand)
+        [active-hand]
         [:h5 "Destination"]
-        [destination-view]
+        [destination]
         [:h5 "Sources"]
-        [source-view available-discards]
+        [source]
         (button (str "Take Turn") #(rf/dispatch [:take-turn]))
         (when move-message [:p.red-text move-message])]
        [:div
         [:h5 "Hand"]
-        (inline-cards hand)
+        [inactive-hand]
         [:h5 "Discards"]
-        (inline-cards available-discards)])
+        (inline-cards @(rf/subscribe [:available-discards]))])
      [:h5 "Your Expeditions"]
      (expedition-table expeditions)
      [:h5 (str opponent "'s Expeditions")]
@@ -165,8 +169,7 @@
      [:h5 opponent "'s expeditions"]
      [expedition-score-table opponent-expeditions]]))
 
-(defn game-over
-  []
+(defn game-over []
   (log/debug "Rendering game over screen!")
   (let [player @(rf/subscribe [:player])
         opponent @(rf/subscribe [:opponent])
@@ -175,6 +178,7 @@
         player-score (reduce + (map #(get % player) round-scores))
         opponent-score (reduce + (map #(get % opponent) round-scores))]
     [:div
+     [:menu-button]
      [:h3 "Game Over"]
      [:table
       [:thead [:tr [:th player] [:th opponent]]]
@@ -193,23 +197,21 @@
           (expedition-score-tables round player opponent)])
        past-rounds)]]))
 
-(defn round-over
-  []
+(defn round-over []
   (log/debug "Rendering round over screen!")
   (let [player @(rf/subscribe [:player])
         opponent @(rf/subscribe [:opponent])
         round @(rf/subscribe [:last-round])]
     [:div
+     [:menu-button]
      [:h3 "Round Over"]
      [button "Play" #(rf/dispatch [:round-screen])]
      (expedition-score-tables round player opponent)]))
 
-(defn splash
-  []
+(defn splash []
   [:p @(rf/subscribe [:status-message])])
 
-(defn sent-invites
-  []
+(defn sent-invites []
   (let [invites @(rf/subscribe [:sent-invites])]
     (letfn [(list-item [index invite]
               [:li.mdl-list__item {:key index}
@@ -224,8 +226,7 @@
          [:ul.demo-list-item.mdl-list
           (map-indexed list-item invites)])])))
 
-(defn received-invites
-  []
+(defn received-invites []
   (let [invites @(rf/subscribe [:received-invites])]
     (letfn [(list-item [index invite]
               [:li.mdl-list__item {:key index}
@@ -270,8 +271,7 @@
        [:h5 "Their turn"]
        (game-list games)])))
 
-(defn menu
-  []
+(defn menu []
   (let [player @(rf/subscribe [:player])
         other-player (case player
                        "mike" "abby"
@@ -290,14 +290,12 @@
            [:li {:key index} message])
          @(rf/subscribe [:messages]))]]))
 
-(defn error
-  []
+(defn error []
   [:div
    [:h5 "Error!"]
    [:p (str @(rf/subscribe [:error-message]))]])
 
-(defn app
-  []
+(defn app []
   (let [screen @(rf/subscribe [:screen])]
     (case screen
       :splash [splash]

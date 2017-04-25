@@ -2,11 +2,9 @@
   (:require [cemerick.friend :as friend]
             [cemerick.friend.credentials :as creds]
             [cemerick.friend.workflows :as workflows]
-            [clojure.edn :as edn]
             [clojure.string :as str]
-            [clojure.set :as set]
             [clojure.spec :as spec]
-            [compojure.core :as compojure :refer [GET PUT ANY POST DELETE]]
+            [compojure.core :as compojure :refer [ANY DELETE GET POST PUT]]
             [compojure.route :as route]
             [com.stuartsierra.component :as component]
             [manifold.bus :as bus]
@@ -14,17 +12,14 @@
             [milo.move :as move]
             [milo.card :as card]
             [milo.player :as player]
-            [milo.server.game-resource :as game-resource]
-            [milo.server.menu-resource :as menu-resource]
-            [milo.server.event :as event]
-            [milo.server.connection :as conn]
+            [milo.server.resource :as resource]
+            [milo.server.websocket :as websocket]
             [ring.middleware.defaults :refer [wrap-defaults
                                               site-defaults
                                               api-defaults]]
             [ring.util.response :as response]
             [selmer.parser :as selmer]
             [taoensso.timbre :as log]))
-
 
 (def users {"admin" {:username "admin"
                      :password (creds/hash-bcrypt "admin")
@@ -41,11 +36,11 @@
 (defn api-routes
   [deps]
   (compojure/routes
-   (GET "/api/game/:id" request (game-resource/handle-retrieval deps request))
-   (PUT "/api/game/:id" request (game-resource/handle-turn deps request))
-   (POST "/api/game" request (menu-resource/handle-accepting-invite deps request))
-   (POST "/api/invite" request (menu-resource/handle-sending-invite deps request))
-   (DELETE "/api/invite/:sender/:recipient" request (menu-resource/handle-deleting-invite deps request))
+   (GET "/api/game/:id" request (resource/handle-retrieval deps request))
+   (PUT "/api/game/:id" request (resource/handle-turn deps request))
+   (POST "/api/game" request (resource/handle-accepting-invite deps request))
+   (POST "/api/invite" request (resource/handle-sending-invite deps request))
+   (DELETE "/api/invite/:sender/:recipient" request (resource/handle-deleting-invite deps request))
    (route/not-found {:status 200})))
 
 (defn wrap-logging
@@ -74,14 +69,7 @@
          #{::user}
          (let [name (:current (friend/identity req))]
            (log/debug "Player:" name)
-           (selmer/render-file "templates/menu.html" {:player name}))))
-
-   (GET "/menu/:player" req
-        (friend/authorize
-         #{::user}
-         (let [name (:current (friend/identity req))]
-           (log/debug "Player:" name)
-           (selmer/render-file "templates/menu.html" {:player name}))))
+           (selmer/render-file "templates/client.html" {:player name}))))
 
    (GET "/login" req
         (selmer/render-file
@@ -89,20 +77,7 @@
          {:anti-forgery-token
           ring.middleware.anti-forgery/*anti-forgery-token*}))
 
-   (GET "/game/:id{[0-9]+}" {{id :id} :params :as req}
-        (friend/authorize
-         #{::user}
-         (let [name (:current (friend/identity req))]
-           (log/debug "Player:" name)
-           (selmer/render-file "templates/game.html" {:player name
-                                                      :game-id id}))))
-
-   (PUT "/foo" {{id :id} :params :as req}
-        (println "HELLO")
-        {:status 200
-         :body "FOO"})
-
-   (GET "/websocket" [] (menu-resource/websocket-handler deps))
+   (GET "/websocket" [] (websocket/handler deps))
 
    (friend/logout (ANY "/logout" request
                        {:status 302

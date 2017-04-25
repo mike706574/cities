@@ -1,6 +1,7 @@
 (ns milo.client.events
   (:require [ajax.core :as ajax]
             [cognitect.transit :as transit]
+            [clojure.spec :as s]
             [milo.game :as game]
             [milo.player :as player]
             [milo.menu :as menu]
@@ -114,6 +115,13 @@
   [db {move :milo.move/move game :milo.game/game}]
   (let [message (str (:milo.player/id move) " took a turn and ended the game.")]
     (assoc db :game game :screen :game-over :status-message )))
+
+(defn show-menu
+  [db game-id]
+  (log/debug "Showing menu.")
+  (-> db
+      (dissoc :game-id :card :destination :source :move-message)
+      (assoc :screen :menu :status-mesage "Opened menu.")))
 
 (defn show-game
   [db game-id]
@@ -287,51 +295,56 @@
         message (decode data)]
     (rf/dispatch [:message message])))
 
-(rf/reg-event-db
- :message
- (fn [db [_ response]]
-   (handle-message db response)))
+(defn handle-message-event
+  [db [_ response]]
+  (handle-message db response))
 
 (defn connect
-  [player]
+  [db player]
   (if-let [socket (js/WebSocket. "ws://goose:8001/websocket")]
     (do (set! js/client-socket socket)
         (set! (.-onopen socket) #(rf/dispatch [:socket-open]))
-        {:socket socket
-         :screen :splash
-         :status-message "Connecting..."
-         :player player
-         :events #{}
-         :active-games {}
-         :sent-invites #{}
-         :received-invites #{}})
-    {:screen :error
-     :error-message "Failed to create socket."}))
+        (assoc db :socket socket))
+    (assoc db :screen :error :error-message "Failed to create socket.")))
 
-(rf/reg-event-db
- :initialize
- (fn [db [_ player]]
-   (log/info (str "Initializing as " player "!"))
-   (connect player)))
+(defn handle-socket-open
+  [{:keys [:socket :player] :as db} _]
+  (set! (.-onmessage socket) handle-socket-event)
+  (.send socket (encode player))
+  (assoc db :status-message "Loading page..."))
 
-(rf/reg-event-db
- :socket-open
- (fn [{:keys [:socket :player] :as db} _]
-   (set! (.-onmessage socket) handle-socket-event)
-   (.send socket (encode player))
-   (assoc db :status-message "Loading page...")))
+(s/def ::db (s/keys :req-un [::screen ::socket ::loading? ::status-message
+                             ::error-message ::player ::events ::active-games
+                             ::sent-invites ::received-invites ::card ::source
+                             ::destination ::move-message]))
 
-(rf/reg-event-db
- :sync
- (fn [{socket :socket :as db} _]
-   (log/info "Syncing!")
-   (assoc db :screen :menu)))
+(defn initialize
+  [_ [_ player]]
+  (log/info (str "Initializing as " player "!"))
+  (let [db {:screen :splash
+            :socket nil
+            :loading? true
+            :status-message "Connecting..."
+            :error-message nil
+            :player player
+            :events #{}
+            :active-games {}
+            :sent-invitse #{}
+            :received-invites #{}
+            :card nil
+            :source nil
+            :destination nil
+            :move-message nil}]
+    (connect db player)))
 
-;; Real events
 (defn handle-message-response
   [db [_ response]]
   (handle-message db response))
 
+;; Events
+(rf/reg-event-db :initialize initialize)
+(rf/reg-event-db :socket-open handle-socket-open)
+(rf/reg-event-db :handle-message handle-message-event)
 (rf/reg-event-db :generic-error handle-generic-error)
 
 (rf/reg-event-fx :send-invite send-invite)
@@ -350,6 +363,8 @@
 (rf/reg-event-fx :take-turn take-turn)
 (rf/reg-event-fx :turn-taken handle-turn-taken)
 (rf/reg-event-fx :turn-rejected handle-turn-rejection)
+
+(rf/reg-event-db :show-menu show-menu)
 
 (rf/reg-event-db
  :player-change

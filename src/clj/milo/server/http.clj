@@ -96,12 +96,6 @@
    :headers {"Content-Type" (get-in request [:headers "accept"])}
    :body (response-body request body)})
 
-(defn non-websocket-response
-  []
-  {:status 400
-   :headers {"content-type" "application/text"}
-   :body "Expected a websocket request."})
-
 (defmacro with-body
   [[body-sym body-spec request] & body]
   `(or (unsupported-media-type ~request)

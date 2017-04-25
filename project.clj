@@ -53,48 +53,23 @@
                    :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
                    :cljsbuild
                    {:builds
-                    {:dev-game
-                     {:figwheel {:on-jsload "milo.client.game.core/reinitialize"
-                                 :websocket-host "192.168.1.141"}
-                      :compiler {:main "milo.client.game.core"
-                                 :asset-path "js"
-                                 :optimizations :none
-                                 :source-map true
-                                 :source-map-timestamp true}}
-                     :production-game
-                     {:compiler {:optimizations :advanced
-                                 :elide-asserts true
-                                 :pretty-print false}}
-                     :dev-menu
-                     {:figwheel {:on-jsload "milo.client.core/refresh"
-                                 :websocket-host "192.168.1.141"}
-                      :compiler {:main "milo.client.core"
-                                 :asset-path "menu/js"
-                                 :optimizations :none
-                                 :source-map true
-                                 :source-map-timestamp true}}
-                     :production-menu
-                     {:compiler {:optimizations :advanced
-                                 :elide-asserts true
-                                 :pretty-print false}}}}}}
-  :cljsbuild {:builds {:dev-game {:source-paths ["src-cljs-game"]
-                                  :compiler {:output-dir "resources/public/game/js"
-                                             :output-to "resources/public/game/game.js"}}
-                       :production-game {:source-paths ["src-cljs-game"]
-                                         :compiler {:output-dir "target/game"
-                                                    :output-to "resources/public/game/game.js"}}
-                       :dev-menu {:source-paths ["src-cljs-menu"]
-                                  :compiler {:output-dir "resources/public/menu/js"
-                                             :output-to "resources/public/menu.js"}}
-                       :production-menu {:source-paths ["src-cljs-menu"]
-                                         :compiler {:output-dir "target/menu"
-                                                    :output-to "resources/public/menu.js"}}}}
+                    {:dev {:figwheel {:on-jsload "milo.client.core/refresh"
+                                      :websocket-host "192.168.1.141"}
+                           :compiler {:main "milo.client.core"
+                                      :asset-path "js"
+                                      :optimizations :none
+                                      :source-map true
+                                      :source-map-timestamp true}}
+                     :production {:compiler {:optimizations :advanced
+                                             :elide-asserts true
+                                             :pretty-print false}}}}}}
+  :cljsbuild {:builds {:dev {:source-paths ["src/cljs"]
+                             :compiler {:output-dir "resources/public/menu/js"
+                                        :output-to "resources/public/menu.js"}}
+                       :production {:source-paths ["src/cljs"]
+                                    :compiler {:output-dir "target/client"
+                                               :output-to "resources/public/client.js"}}}}
   :figwheel {:repl false
              :http-server-root "public"}
-  :clean-targets ^{:protect false} ["resources/public/game/game.js"
-                                    "resources/public/game/js"
-                                    "resources/public/menu.js"
-                                    "resources/public/menu/js"]
-  :aliases {"production-client" ["do" "clean"
-                                 ["cljsbuild" "once" "production-menu"]
-                                 ["cljsbuild" "once" "production-game"]]})
+  :clean-targets ^{:protect false} ["resources/public/client.js"]
+  :aliases {"production-client" ["do" "clean" ["cljsbuild" "once" "production"]]})
