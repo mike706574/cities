@@ -27,7 +27,7 @@
                     (update-in [::game/player-data opponent] dissoc ::player/hand)
                     (assoc ::game/available-discards available-discards)
                     (assoc ::game/draw-count (count draw-pile)))]
-      (assoc game ::game/round round))))
+      (assoc game ::game/round round ::game/opponent opponent))))
 
 (defn game-summary-for
   [player game]
@@ -36,10 +36,12 @@
     (if (game/game-over? game)
       {::game/id id
        ::game/opponent opponent
+       ::game/loaded? false
        ::game/over? true}
       {::game/id id
        ::game/opponent opponent
        ::game/over? false
+       ::game/loaded? false
        ::game/round-number (inc (count (::game/past-rounds game)))
        ::game/turn (get-in game [::game/round ::game/turn])})))
 

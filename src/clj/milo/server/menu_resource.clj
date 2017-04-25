@@ -106,7 +106,7 @@
            game (assoc (game/rand-game invite 4) ::game/id id)
            event (event/store event-manager {:milo/status :game-created
                                              ::game/game game
-                                             :menu/invite invite})]
+                                             :milo/invite invite})]
        (alter invites disj invite)
        (alter games assoc id game)
        event))))
@@ -122,8 +122,8 @@
           (let [{status :milo/status :as response} (accept-invite deps invite)]
             (if (= status :invite-not-found)
               (body-response 409 request response)
-              (let [sender-message (update response ::game/game (partial model/game-for sender))
-                    recipient-message (update response ::game/game (partial model/game-for recipient))]
+              (let [sender-message (update response ::game/game (partial model/game-summary-for sender))
+                    recipient-message (update response ::game/game (partial model/game-summary-for recipient))]
                 (bus/publish! player-bus sender sender-message)
                 (bus/publish! player-bus recipient recipient-message)
                 (body-response 201 request recipient-message)))))))))

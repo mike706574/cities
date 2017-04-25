@@ -31,7 +31,7 @@
 
 (def config {:id "milo-server" :port 8001})
 
-(def system nil)
+(defonce system nil)
 
 (defn init
   "Creates and initializes the system under development in the Var
@@ -43,8 +43,12 @@
 (defn start
   "Starts the system running, updates the Var #'system."
   []
-  (alter-var-root #'system component/start-system)
-  :started)
+  (try
+    (alter-var-root #'system component/start-system)
+    :started
+    (catch Exception ex
+      (log/error (.getCause ex) "Failed to start system.")
+      :failed)))
 
 (defn stop
   "Stops the system if it is currently running, updates the Var
@@ -171,6 +175,14 @@
 
 )
 
+   (-> @(http/get "http://localhost:8001/api/game/1"
+                 {:headers {"Player" "abby"
+                            "Content-Type" "application/transit+json"
+                            "Accept" "application/transit+json"}
+                  :throw-exceptions false})
+        :body
+        slurp
+        message/decode)
 
    (def x@(http/websocket-client "ws://localhost:8001/menu-websocket"))
   )

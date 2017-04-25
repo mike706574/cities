@@ -11,6 +11,8 @@
 (enable-console-print!)
 (log/set-level! :debug)
 
+(println "HELLO")
+
 (defn db
   []
   (pprint @(rf/subscribe [:db])))

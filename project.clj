@@ -36,7 +36,7 @@
                  [day8.re-frame/http-fx "0.1.3"]
                  [cljs-ajax "0.5.9"]]
 
-  :source-paths ["src/clj"]
+  :source-paths ["src/clj" "src/cljc"]
   :test-paths ["test/clj"]
   :plugins [[com.palletops/uberimage "0.4.1"]
             [lein-cljsbuild "1.1.5"]
@@ -66,9 +66,9 @@
                                  :elide-asserts true
                                  :pretty-print false}}
                      :dev-menu
-                     {:figwheel {:on-jsload "milo.client.menu.core/sync"
+                     {:figwheel {:on-jsload "milo.client.core/refresh"
                                  :websocket-host "192.168.1.141"}
-                      :compiler {:main "milo.client.menu.core"
+                      :compiler {:main "milo.client.core"
                                  :asset-path "menu/js"
                                  :optimizations :none
                                  :source-map true

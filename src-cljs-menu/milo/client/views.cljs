@@ -1,10 +1,11 @@
-(ns milo.client.menu.views
+(ns milo.client.views
   (:require [clojure.string :as str]
             [re-frame.core :as rf]
             [milo.game :as game]
             [milo.card :as card]
             [milo.player :as player]
-            [milo.score :as score]))
+            [milo.score :as score]
+            [taoensso.timbre :as log]))
 
 (defn button
   [label on-click]
@@ -12,13 +13,6 @@
    {:value label
     :on-click  on-click}
    label])
-
-(defn player-selection
-  []
-  (let [player @(rf/subscribe [:player])]
-    [:div
-     [button "abby" #(rf/dispatch [:initialize "abby" "1"])]
-     [button "mike" #(rf/dispatch [:initialize "mike" "1"])]]))
 
 (defn active-hand-view
   [hand]
@@ -138,10 +132,8 @@
         opponent-expeditions @(rf/subscribe [:opponent-expeditions])
         turn? (= player turn)]
     [:div
-     [:h3 "Game"]
-     [:h4 (str "Round #" round-number)]
-     [:p (str  "It's " (if turn? "your" (str opponent "'s")) " turn. "
-               "There are " draw-count " cards left in the draw pile.")]
+     [:h3 (str "Round " round-number " versus " opponent)]
+     [:p (str "There are " draw-count " cards left. It's " (if turn? "your" (str opponent "'s")) " turn. ")]
      (if turn?
        [:div
         [:h5 "Hand"]
@@ -212,16 +204,9 @@
      [button "Play" #(rf/dispatch [:round-screen])]
      (expedition-score-tables round player opponent)]))
 
-(defn player-selection
-  []
-  (let [player @(rf/subscribe [:player])]
-    [:div
-     [button "abby" #(rf/dispatch [:initialize "abby"])]
-     [button "mike" #(rf/dispatch [:initialize "mike"])]]))
-
 (defn splash
   []
-  [:h5 @(rf/subscribe [:status-message])])
+  [:p @(rf/subscribe [:status-message])])
 
 (defn sent-invites
   []
@@ -267,7 +252,7 @@
                 [:i.material-icons.mdl-list__item-avatar "person"]
                 opponent]
                [:span.mdl-list__item-secondary-action
-                (button "Play" #(rf/dispatch ["Play" id]))]]))]
+                (button "Play" #(rf/dispatch [:play-game id]))]]))]
     [:ul.demo-list-control.mdl-list
      (map game-item games)]))
 
@@ -291,6 +276,7 @@
         other-player (case player
                        "mike" "abby"
                        "abby" "mike")]
+    (log/debug "Rendering menu.")
       [:div
        [ready-games]
        [waiting-games]
@@ -315,7 +301,6 @@
   (let [screen @(rf/subscribe [:screen])]
     (case screen
       :splash [splash]
-      :player-selection [player-selection]
       :game [game]
       :round-over [round-over]
       :game-over [game-over]

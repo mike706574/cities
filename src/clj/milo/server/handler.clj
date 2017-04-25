@@ -41,6 +41,7 @@
 (defn api-routes
   [deps]
   (compojure/routes
+   (GET "/api/game/:id" request (game-resource/handle-retrieval deps request))
    (PUT "/api/game/:id" request (game-resource/handle-turn deps request))
    (POST "/api/game" request (menu-resource/handle-accepting-invite deps request))
    (POST "/api/invite" request (menu-resource/handle-sending-invite deps request))
