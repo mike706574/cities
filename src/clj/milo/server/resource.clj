@@ -150,9 +150,10 @@
      (let [{status :milo.game/status
             game' :milo.game/game} (game/take-turn game move)]
        (if-not (turn-taken? status)
-         {:milo/status status
-          :milo.game/id game-id}
+         {:milo/status status :milo.move/move move :milo.game/id game-id}
          (let [event (event/store event-manager {:milo/status status
+                                                 :milo.move/move move
+                                                 :milo.game/id game-id
                                                  :milo.game/game game'})]
            (alter games (fn [games] (assoc games game-id game')))
            event))))))
@@ -165,16 +166,14 @@
              {player "player"} :headers} request]
         (if-not (= player (:milo.player/id move))
           (body-response 403 request {:milo.server/message "Taking turns for other players is not allowed."})
-          (let [{status :milo/status game :milo.game/game} (take-turn deps player game-id move)]
+          (let [{status :milo/status :as response} (take-turn deps player game-id move)]
             (cond
-              (turn-taken? status) (let [response {:milo/status status
-                                                   :milo.game/id game-id
-                                                   :milo.move/move move
-                                                   :milo.game/game game}
-                                         opponent (game/opponent (:milo.game/game response) player)]
-                                     (bus/publish! player-bus player (model/game-for player game))
-                                     (bus/publish! player-bus opponent (model/game-for player game))
-                                     (body-response 200 request response))
+              (turn-taken? status) (let [opponent (game/opponent (:milo.game/game response) player)
+                                         player-message (update response :milo.game/game #(model/game-for player %))
+                                         opponent-message (update response :milo.game/game #(model/game-for opponent %))]
+                                     (bus/publish! player-bus player player-message)
+                                     (bus/publish! player-bus opponent opponent-message)
+                                     (body-response 200 request player-message))
               (= status :game-not-found) (body-response 404 request {:milo/status :game-not-found
                                                                      :milo.game/id game-id})
               :else (body-response 409 request {:milo/status :turn-not-taken

@@ -14,6 +14,9 @@
     :on-click  on-click}
    label])
 
+(defn back-button []
+  (button "Back" #(rf/dispatch [:show-menu])))
+
 (defn active-hand-view
   [hand]
   (let [selected-card @(rf/subscribe [:card])]
@@ -132,6 +135,7 @@
         opponent-expeditions @(rf/subscribe [:opponent-expeditions])
         turn? (= player turn)]
     [:div
+     [back-button]
      [:h3 (str "Round " round-number " versus " opponent)]
      [:p (str "There are " draw-count " cards left. It's " (if turn? "your" (str opponent "'s")) " turn. ")]
      (if turn?
@@ -175,6 +179,7 @@
         player-score (reduce + (map #(get % player) round-scores))
         opponent-score (reduce + (map #(get % opponent) round-scores))]
     [:div
+     [back-button]
      [:h3 "Game Over"]
      [:table
       [:thead [:tr [:th player] [:th opponent]]]
@@ -200,6 +205,7 @@
         opponent @(rf/subscribe [:opponent])
         round @(rf/subscribe [:last-round])]
     [:div
+     [back-button]
      [:h3 "Round Over"]
      [button "Play" #(rf/dispatch [:round-screen])]
      (expedition-score-tables round player opponent)]))

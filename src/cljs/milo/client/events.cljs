@@ -10,8 +10,14 @@
 
 (defmulti handle-message
   (fn [db message]
-    (log/debug "Received message:" message)
-    (:milo/status message)))
+    (let [status (:milo/status message)]
+      (println "Received message with status:" status)
+      (cljs.pprint/pprint message)
+      status)))
+
+(defmethod handle-message :error
+  [db {error-message :milo/error-message}]
+  (assoc db :screen :error :error-message :error-message))
 
 (defmethod handle-message :state
   [db {:keys [:milo/active-games :milo/sent-invites :milo/received-invites]}]
@@ -93,27 +99,45 @@
           (update invites disj invite)
           (update :messages conj message)))))
 
-(defmethod handle-message :error
-  [db {error-message :milo/error-message}]
-  (assoc db :screen :error :error-message :error-message))
-
 (defmethod handle-message :taken
-  [db {move :milo.move/move game :milo.game/game}]
-  (let [message (str (:milo.player/id move) " took a turn.")]
-    (assoc db :game game :status-message message)))
+  [{:keys [events game-id] :as db} {:keys [:milo/event-id :milo.game/game :milo.move/move]}]
+  (if (contains? events event-id)
+    db
+    (let [message (str (:milo.player/id move) " took a turn.")]
+      (log/info message)
+      (-> db
+          (assoc-in [:active-games game-id] game)
+          (assoc :status-message message)))))
 
 (defmethod handle-message :round-over
-  [db {move :milo.move/move game :milo.game/game}]
-  (let [message (str (:milo.player/id move) " took a turn and ended the round.")]
-    (assoc db
-           :screen :round-over
-           :game game
-           :status-message message)))
+  [{:keys [events game-id] :as db} {:keys [:milo/event-id :milo.game/game :milo.move/move]}]
+  (if (contains? events event-id)
+    db
+    (let [message (str (:milo.player/id move) " took a turn and ended the round.")]
+      (-> db
+          (assoc :screen :round-over :status-message message)
+          (assoc-in [:active-games game-id] game)))))
 
 (defmethod handle-message :game-over
-  [db {move :milo.move/move game :milo.game/game}]
-  (let [message (str (:milo.player/id move) " took a turn and ended the game.")]
-    (assoc db :game game :screen :game-over :status-message )))
+  [{:keys [events game-id] :as db} {:keys [:milo/event-id :milo.game/game :milo.move/move]}]
+  (if (contains? events event-id)
+    db
+    (let [message (str (:milo.player/id move) " took a turn and ended the game.")]
+      (-> db
+          (assoc :screen :game-over :status-message message)
+          (assoc-in [:active-games game-id] game)))))
+
+(defn show-menu
+  [db _]
+  (println "Showing menu!")
+  (assoc db
+         :screen :menu
+         :status-message "Showing menu."
+         :game-id nil
+         :card nil
+         :destination nil
+         :source nil
+         :move-message nil))
 
 (defn show-game
   [db game-id]
@@ -140,7 +164,7 @@
   (let [player (:player db)]
     (if-let [game (get-in db [:active-games game-id])]
       (if (:loaded? game)
-        (show-game db game-id)
+        {:db (show-game db game-id)}
         {:db (-> db
                  (dissoc :move-message)
                  (assoc :loading? true))
@@ -231,7 +255,7 @@
 
 (defn handle-turn-taken
   [db [_ response]]
-  (let [{status :milo/status game ::game/game} response]
+  (let [{status :milo/status game :milo.game/game} response]
     (if (= status :game-over)
       (merge db {:game game
                  :screen :game-over
@@ -290,29 +314,38 @@
 (rf/reg-event-db
  :message
  (fn [db [_ response]]
+   (println "Message received.")
+   (println response)
    (handle-message db response)))
 
-(defn connect
+(defn initial-state
   [player]
+  {:screen :splash
+   :socket nil
+   :player player
+   :status-message "Initializing."
+   :events #{}
+   :active-games {}
+   :sent-invites #{}
+   :received-invites #{}
+   :move-message nil
+   :card nil
+   :source nil
+   :destination nil})
+
+(defn connect
+  [db]
   (if-let [socket (js/WebSocket. "ws://goose:8001/websocket")]
     (do (set! js/client-socket socket)
         (set! (.-onopen socket) #(rf/dispatch [:socket-open]))
-        {:socket socket
-         :screen :splash
-         :status-message "Connecting..."
-         :player player
-         :events #{}
-         :active-games {}
-         :sent-invites #{}
-         :received-invites #{}})
-    {:screen :error
-     :error-message "Failed to create socket."}))
+        (assoc db :socket socket :status-message "Connecting..."))
+    (assoc db :screen :error :error-message "Failed to create socket.")))
 
 (rf/reg-event-db
  :initialize
  (fn [db [_ player]]
    (log/info (str "Initializing as " player "!"))
-   (connect player)))
+   (connect (initial-state player))))
 
 (rf/reg-event-db
  :socket-open
@@ -347,9 +380,11 @@
 (rf/reg-event-fx :play-game play-game)
 (rf/reg-event-db :game-retrieved show-retrieved-game)
 
+(rf/reg-event-db :show-menu show-menu)
+
 (rf/reg-event-fx :take-turn take-turn)
-(rf/reg-event-fx :turn-taken handle-turn-taken)
-(rf/reg-event-fx :turn-rejected handle-turn-rejection)
+(rf/reg-event-db :turn-taken handle-turn-taken)
+(rf/reg-event-db :turn-rejected handle-turn-rejection)
 
 (rf/reg-event-db
  :player-change

@@ -64,12 +64,13 @@
                                              :elide-asserts true
                                              :pretty-print false}}}}}}
   :cljsbuild {:builds {:dev {:source-paths ["src/cljs"]
-                             :compiler {:output-dir "resources/public/menu/js"
-                                        :output-to "resources/public/menu.js"}}
+                             :compiler {:output-dir "resources/public/js"
+                                        :output-to "resources/public/client.js"}}
                        :production {:source-paths ["src/cljs"]
                                     :compiler {:output-dir "target/client"
                                                :output-to "resources/public/client.js"}}}}
   :figwheel {:repl false
              :http-server-root "public"}
-  :clean-targets ^{:protect false} ["resources/public/client.js"]
+  :clean-targets ^{:protect false} ["resources/public/client.js"
+                                    "resources/public/js"]
   :aliases {"production-client" ["do" "clean" ["cljsbuild" "once" "production"]]})

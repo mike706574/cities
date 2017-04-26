@@ -2,10 +2,8 @@
 /lib
 /classes
 /checkouts
-/resources/public/game/js
-/resources/public/game/game.js
-/resources/public/menu/js
-/resources/public/menu.js
+/resources/public/js
+/resources/public/client.js
 pom.xml
 *.jar
 *.class
