@@ -78,6 +78,4 @@
                                                :output-to "resources/public/client.js"}}}}
   :figwheel {:repl false
              :http-server-root "public"}
-  :clean-targets ^{:protect false} ["resources/public/client.js"
-                                    "resources/public/js"]
   :aliases {"production-client" ["do" "clean" ["cljsbuild" "once" "production"]]})
