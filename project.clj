@@ -47,8 +47,6 @@
             [lein-figwheel "0.5.9"]]
   :uberjar-name "milo-webapp.jar"
   :main milo.server.main
-  :aot :all
-;;  :hooks [leiningen.cljsbuild]
   :profiles {:uberjar {:aot :all
                        :main milo.server.main}
              :dev {:source-paths ["dev"]

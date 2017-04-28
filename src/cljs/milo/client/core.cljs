@@ -10,6 +10,10 @@
 (log/set-level! :debug)
 (enable-console-print!)
 
+(defn set-log-level
+  [level]
+  (log/set-level! (keyword level)))
+
 (defn db
   []
   (cljs.pprint/pprint @(rf/subscribe [:db])))
