@@ -326,16 +326,19 @@
 
 (defn connect
   [db]
-  (if-let [socket (js/WebSocket. "ws://misplaced-villages.herokuapp.com/websocket")]
-    (do (set! js/client-socket socket)
-        (set! (.-onopen socket) #(rf/dispatch [:socket-open]))
-        (assoc db :socket socket :status-message "Connecting..."))
-    (assoc db :screen :error :error-message "Failed to create socket.")))
+  (let [secure? (= (.-protocol (.-location js/document)) "https")
+        protocol (if secure? "wss" "ws")
+        url (str protocol "://misplaced-villages.herokuapp.com/websocket")]
+    (log/debug "Establishing websocket connection to " url ".")
+    (if-let [socket (js/WebSocket. url)]
+      (do (set! js/client-socket socket)
+          (set! (.-onopen socket) #(rf/dispatch [:socket-open]))
+          (assoc db :socket socket :status-message "Connecting..."))
+      (assoc db :screen :error :error-message "Failed to create socket."))))
 
 (rf/reg-event-db
  :initialize
  (fn [db [_ player]]
-   (log/info (str "Initializing as " player "!"))
    (connect (initial-state player))))
 
 (rf/reg-event-db

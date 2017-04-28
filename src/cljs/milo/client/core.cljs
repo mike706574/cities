@@ -24,7 +24,7 @@
 
 (defn ^:export run
   [player]
-  (log/info "Running application.")
+  (log/info "Running application as " player ".")
   (set! js/client-player player)
   (init player))
 
