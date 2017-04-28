@@ -11,8 +11,6 @@
 (defmulti handle-message
   (fn [db message]
     (let [status (:milo/status message)]
-      (println "Received message with status:" status)
-      (cljs.pprint/pprint message)
       status)))
 
 (defmethod handle-message :error
@@ -129,7 +127,6 @@
 
 (defn show-menu
   [db _]
-  (println "Showing menu!")
   (assoc db
          :screen :menu
          :status-message "Showing menu."
@@ -314,8 +311,6 @@
 (rf/reg-event-db
  :message
  (fn [db [_ response]]
-   (println "Message received.")
-   (println response)
    (handle-message db response)))
 
 (defn initial-state
@@ -335,7 +330,7 @@
 
 (defn connect
   [db]
-  (if-let [socket (js/WebSocket. "ws://goose:8001/websocket")]
+  (if-let [socket (js/WebSocket. "ws://misplaced-villages.herokuapp.com/websocket")]
     (do (set! js/client-socket socket)
         (set! (.-onopen socket) #(rf/dispatch [:socket-open]))
         (assoc db :socket socket :status-message "Connecting..."))

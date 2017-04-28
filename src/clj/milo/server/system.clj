@@ -46,7 +46,7 @@
    :connections (atom {})
    :events (ref {})
 
-   :games (ref {"1" (assoc test-game :milo.game/id "1")})
+   :games (ref {})
    :invites (ref #{})
 
    :event-manager (event/manager)
