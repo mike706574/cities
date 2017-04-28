@@ -93,8 +93,8 @@
       (friend/authenticate
        {:credential-fn (partial creds/bcrypt-credential-fn users)
         :workflows [(workflows/interactive-form)]})
-      (wrap-defaults site-defaults)
-      (wrap-resource "public")))
+      (wrap-resource "public")
+      (wrap-defaults site-defaults)))
 
 (defprotocol HandlerFactory
   "Builds a request handler."
