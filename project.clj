@@ -44,6 +44,7 @@
             [cider/cider-nrepl "0.14.0"]
             [org.clojure/tools.nrepl "0.2.12"]
             [lein-figwheel "0.5.9"]]
+  :uberjar-name "milo-webapp.jar"
 ;;  :hooks [leiningen.cljsbuild]
   :profiles {:uberjar {:aot :all
                        :main milo.server.main}
