@@ -326,10 +326,9 @@
 
 (defn connect
   [db]
-  (let [secure? (= (.-protocol (.-location js/document)) "https")
+  (let [secure? (= (.-protocol (.-location js/document)) "https:")
         protocol (if secure? "wss" "ws")
         url (str protocol "://misplaced-villages.herokuapp.com/websocket")]
-    (log/debug (str "Detected protocol :" (.-protocol (.-location js/document))))
     (log/debug (str "Establishing websocket connection to " url "."))
     (if-let [socket (js/WebSocket. url)]
       (do (set! js/client-socket socket)
