@@ -102,7 +102,6 @@
   (if (contains? events event-id)
     db
     (let [message (str (:milo.player/id move) " took a turn.")]
-      (log/info message)
       (-> db
           (assoc-in [:active-games game-id] game)
           (assoc :status-message message)))))
@@ -139,8 +138,6 @@
 (defn show-game
   [db game-id]
   (let [game (get-in db [:active-games game-id])]
-    (log/debug "Trying to show game" game-id)
-    (log/debug "ACTIVE:" (keys (:active-games db)))
     (if (game/game-over? game)
       (assoc db
              :game-id game-id
@@ -288,7 +285,6 @@
 
 (defn handle-generic-error
   [db [_ {status :status response :response}]]
-  (log/debug "lkeajwflkeajfkoejwaoifgajgfoaiwejgoiajw")
   (merge db {:screen :error
              :error-status-code status
              :error-message response}))
