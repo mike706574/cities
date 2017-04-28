@@ -8,7 +8,7 @@
 (defn -main
   [& [port]]
   (let [port (Integer. (or port (env :port) 5000))]
-    (log/info (str "Starting up on port " port "."))
+    (log/info (str "Using port " port "."))
     (component/start-system
      (system/system {:id "milo" :port port}))
     @(promise)))
