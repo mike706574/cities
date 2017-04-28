@@ -6,8 +6,8 @@
   (:gen-class :main true))
 
 (defn -main
-  [_]
-  (let [port (Integer. (or port (env :port) 5000))]
+  [& [port]]
+  (let [port (Integer. (or (env :port) 5000))]
     (log/info (str "Starting up on port " port "."))
     (component/start-system
      (system/system {:id "milo" :port port}))
