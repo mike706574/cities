@@ -15,6 +15,7 @@
                  [com.cognitect/transit-clj "0.8.300"]
                  [manifold "0.1.6"]
                  [byte-streams "0.2.2"]
+                 [environ "1.1.0"]
 
                  ;; Logging
                  [com.taoensso/timbre "4.8.0"]
@@ -44,7 +45,9 @@
             [org.clojure/tools.nrepl "0.2.12"]
             [lein-figwheel "0.5.9"]]
 ;;  :hooks [leiningen.cljsbuild]
-  :profiles {:dev {:source-paths ["dev"]
+  :profiles {:uberjar {:aot :all
+                       :main milo.server.main}
+             :dev {:source-paths ["dev"]
                    :target-path "target/dev"
                    :dependencies [[org.clojure/test.check "0.9.0"]
                                   [org.clojure/tools.namespace "0.2.11"]
