@@ -17,6 +17,7 @@
             [ring.middleware.defaults :refer [wrap-defaults
                                               site-defaults
                                               api-defaults]]
+            [ring.middleware.resource :refer [wrap-resource]]
             [ring.util.response :as response]
             [selmer.parser :as selmer]
             [taoensso.timbre :as log]))
@@ -92,7 +93,8 @@
       (friend/authenticate
        {:credential-fn (partial creds/bcrypt-credential-fn users)
         :workflows [(workflows/interactive-form)]})
-      (wrap-defaults site-defaults)))
+      (wrap-defaults site-defaults)
+      (wrap-resource "public")))
 
 (defprotocol HandlerFactory
   "Builds a request handler."
