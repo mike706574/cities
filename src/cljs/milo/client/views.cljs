@@ -79,8 +79,7 @@
   [expeditions]
   (stack-table expeditions true))
 
-(defn destination-view
-  []
+(defn destination-view []
   (let [destination @(rf/subscribe [:destination])]
     [:ul.no-space
      [:li {:key :play
@@ -120,8 +119,7 @@
             (card/str-card card)]]))
       available-discards)]))
 
-(defn game
-  []
+(defn game []
   (log/debug "Rendering game!")
   (let [player @(rf/subscribe [:player])
         turn @(rf/subscribe [:turn])
@@ -169,8 +167,7 @@
      [:h5 opponent "'s expeditions"]
      [expedition-score-table opponent-expeditions]]))
 
-(defn game-over
-  []
+(defn game-over []
   (log/debug "Rendering game over screen!")
   (let [player @(rf/subscribe [:player])
         opponent @(rf/subscribe [:opponent])
@@ -198,8 +195,7 @@
           (expedition-score-tables round player opponent)])
        past-rounds)]]))
 
-(defn round-over
-  []
+(defn round-over []
   (log/debug "Rendering round over screen!")
   (let [player @(rf/subscribe [:player])
         opponent @(rf/subscribe [:opponent])
@@ -207,15 +203,13 @@
     [:div
      [back-button]
      [:h3 "Round Over"]
-     [button "Play" #(rf/dispatch [:round-screen])]
+     [button "Play" #(rf/dispatch [:back-to-game])]
      (expedition-score-tables round player opponent)]))
 
-(defn splash
-  []
+(defn splash []
   [:p @(rf/subscribe [:status-message])])
 
-(defn sent-invites
-  []
+(defn sent-invites []
   (let [invites @(rf/subscribe [:sent-invites])]
     (letfn [(list-item [index invite]
               [:li.mdl-list__item {:key index}
@@ -230,8 +224,7 @@
          [:ul.demo-list-item.mdl-list
           (map-indexed list-item invites)])])))
 
-(defn received-invites
-  []
+(defn received-invites []
   (let [invites @(rf/subscribe [:received-invites])]
     (letfn [(list-item [index invite]
               [:li.mdl-list__item {:key index}
@@ -276,6 +269,32 @@
        [:h5 "Their turn"]
        (game-list games)])))
 
+(defn toast []
+  (println "Toasting!")
+  (if-let [{:keys [message action-event action-label color]} @(rf/subscribe [:toast])]
+    [:div#toast.mdl-js-snackbar.mdl-snackbar.mdl-snackbar--active
+     {:aria-hidden "false"}
+     [:div.mdl-snackbar__text (or message "No message.")]
+     (when action-event
+       [:button.mdl-snackbar__action
+        {:type "button"
+         :on-click #(rf/dispatch action-event)}
+        (or action-event "Perform Action")])]
+    [:div#toast.mdl-js-snackbar.mdl-snackbar
+     {:class ""
+      :aria-hidden "true"}
+     [:div.mdl-snackbar__text toast]]))
+
+(defn invite-form []
+  (let [invite-recipient @(rf/subscribe [:invite-recipient])]
+    [:div
+     [:h5 "Start Game"]
+     [:input
+      {:type "text"
+       :on-change #(rf/dispatch [:change-invite-recipient (-> % .-target .-value)])
+       :value invite-recipient}]
+     [button (str "Send Invite") #(rf/dispatch [:send-invite invite-recipient])]]))
+
 (defn menu
   []
   (let [player @(rf/subscribe [:player])
@@ -284,26 +303,21 @@
                        "abby" "mike")]
     (log/debug "Rendering menu.")
       [:div
+       [toast]
        [ready-games]
        [waiting-games]
        [received-invites]
-       [button (str "Invite " other-player " to play") #(rf/dispatch [:send-invite other-player])]
-       [sent-invites]
-       [:h5 "Messages"]
-       [:ul
-        (map-indexed
-         (fn [index message]
-           [:li {:key index} message])
-         @(rf/subscribe [:messages]))]]))
+       [invite-form]
 
-(defn error
-  []
+       [sent-invites]]))
+
+(defn error []
   [:div
+   [back-button]
    [:h5 "Error!"]
    [:p (str @(rf/subscribe [:error-message]))]])
 
-(defn app
-  []
+(defn app []
   (let [screen @(rf/subscribe [:screen])]
     (case screen
       :splash [splash]

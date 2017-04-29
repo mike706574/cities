@@ -37,10 +37,11 @@
 (defn api-routes
   [deps]
   (compojure/routes
-   (GET "/api/game/:id" request (resource/handle-retrieval deps request))
+   (GET "/api/game/:id" request (resource/handle-game-retrieval deps request))
    (PUT "/api/game/:id" request (resource/handle-turn deps request))
    (POST "/api/game" request (resource/handle-accepting-invite deps request))
    (POST "/api/invite" request (resource/handle-sending-invite deps request))
+   (GET "/api/invites" request (resource/handle-sending-invite deps request))
    (DELETE "/api/invite/:sender/:recipient" request (resource/handle-deleting-invite deps request))
    (route/not-found {:status 200})))
 
@@ -49,6 +50,7 @@
   (fn [{:keys [uri method] :as request}]
     (let [label (str "PUT \"" uri "\"")]
       (try
+        (log/debug label)
         (let [{:keys [status] :as response} (handler request)]
           (log/debug (str label " -> " status))
           response)
@@ -69,7 +71,6 @@
         (friend/authorize
          #{::user}
          (let [name (:current (friend/identity req))]
-           (log/debug "Player:" name)
            (selmer/render-file "templates/client.html" {:player name}))))
 
    (GET "/login" req

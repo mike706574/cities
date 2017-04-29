@@ -7,12 +7,19 @@
             [re-frame.core :as rf]
             [taoensso.timbre :as log]))
 
-(log/set-level! :debug)
 (enable-console-print!)
 
 (defn set-log-level
   [level]
   (log/set-level! (keyword level)))
+
+(defn debug
+  [msg]
+  (log/debug msg))
+
+(defn trace
+  [msg]
+  (log/trace msg))
 
 (defn db
   []
@@ -28,11 +35,11 @@
 
 (defn ^:export run
   [player]
-  (log/info "Running application as " player ".")
+  (log/info (str "Running application as " player "."))
   (set! js/client-player player)
   (init player))
 
 (defn ^:export refresh []
   (log/info "Refreshing application.")
-  (.close js/client-socket)
-  (run js/client-player))
+  (do (rf/dispatch-sync [:initialize])
+      (reagent/render [views/app] (js/document.getElementById "app"))))

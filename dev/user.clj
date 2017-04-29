@@ -27,6 +27,7 @@
    [milo.server.message :as message]
    [taoensso.timbre :as log]))
 
+
 (log/set-level! :trace)
 
 (def config {:id "milo-server" :port 8001})
@@ -77,112 +78,6 @@
   (stop)
   (go))
 
-(defn check
-  [conn]
-  (let [message @(s/try-take! conn :drained 1000 :timeout)]
-    (println
-     (case message
-       :drained "DRAINED! Something probably blew up!"
-       :timeout "TIMEOUT! Timed out waiting for message...!"
-       (do ;;(println "I HAVE TO PARSE:" message)
-         (str "*** START MESSAGE ***\n"
-              (with-out-str (clojure.pprint/pprint (edn/read-string message)))
-              "**** END MESSAGE ****\n"))))))
+(defn connections [] @(:connections system))
 
-(defn invite
-  []
-  (let [conn @(http/websocket-client "ws://localhost:8001/menu-websocket")]
-    (s/put! conn "Abby")
-    (check conn)
-    (s/put! conn "{:menu/status :send-invite :opponent \"Mike\"}")
-    (check conn)))
-
-(defn inviting
-  []
-  (let [mike @(http/websocket-client "ws://localhost:8001/menu-websocket")
-        abby @(http/websocket-client "ws://localhost:8001/menu-websocket")]
-    (s/put! mike "Mike")
-    (s/put! abby "Abby")
-    (check abby)
-    (s/put! abby "{:menu/status :send-invite :opponent \"Mike\"}")
-    (check abby)
-    (s/close! mike)
-    (s/close! abby)))
-
-(defn parse
-  [request]
-  (if (contains? request :body)
-    (update request :body (comp message/decode slurp))
-    request))
-
-(comment
-  @(http/get "http://localhost:8001/")
-
-  (-> system
-      :games
-      deref
-
-)
-  (get-in (get @(:games system) "1") [::game/round ::game/player-data "mike"])
-
-  @(:invites system)
-
-
-  (parse @(http/post "http://localhost:8001/api/invite"
-                 {:headers {"Player" "mike"
-                            "Content-Type" "application/transit+json"
-                            "Accept" "application/transit+json"}
-                  :body (message/encode ["mike" "abby"])
-                  :throw-exceptions false}))
-
-
-
-  ;; take turn
-  (-> @(http/put "http://localhost:8001/api/game/1"
-                 {:headers {"Player" "mike"
-                            "Content-Type" "application/transit+json"
-                            "Accept" "application/transit+json"}
-                  :body (message/encode (move/exp* "mike" (card/number :yellow 7)))
-                  :throw-exceptions false})
-      :body
-      slurp
-      message/decode)
-
-
-
-
- @(:invites system)
-
- (-> @(http/post "http://localhost:8001/api/invite"
-                {:headers {"Content-Type" "application/transit+json"
-                           "Player" "mike"
-                           "Accept" "application/transit+json"}
-                 :body (message/encode ["mike" "abby"])
-                 :throw-exceptions false})
-     :body
-     slurp
-     message/decode
-)
-
-   (-> @(http/delete "http://localhost:8001/api/invite/mike/abby"
-                 {:headers {"Player" "abby"
-                            "Content-Type" "application/transit+json"
-                            "Accept" "application/transit+json"}
-                  :throw-exceptions false})
-        :body
-        slurp
-        message/decode
-
-)
-
-   (-> @(http/get "http://localhost:8001/api/game/1"
-                 {:headers {"Player" "abby"
-                            "Content-Type" "application/transit+json"
-                            "Accept" "application/transit+json"}
-                  :throw-exceptions false})
-        :body
-        slurp
-        message/decode)
-
-   (def x@(http/websocket-client "ws://localhost:8001/menu-websocket"))
-  )
+(defn invites [] @(:invites system))

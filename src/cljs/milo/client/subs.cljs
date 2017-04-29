@@ -159,3 +159,13 @@
  :past-rounds
  (fn [db _]
    (:milo.game/past-rounds (game db))))
+
+(rf/reg-sub
+ :toast
+ (fn [db _]
+   (:toast db)))
+
+(rf/reg-sub
+ :invite-recipient
+ (fn [db _]
+   (:invite-recipient db)))

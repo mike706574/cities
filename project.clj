@@ -37,7 +37,6 @@
                  [re-frame "0.9.2"]
                  [day8.re-frame/http-fx "0.1.3"]
                  [cljs-ajax "0.5.9"]]
-
   :source-paths ["src/clj" "src/cljc"]
   :test-paths ["test/clj"]
   :plugins [[com.palletops/uberimage "0.4.1"]
@@ -45,11 +44,7 @@
             [cider/cider-nrepl "0.14.0"]
             [org.clojure/tools.nrepl "0.2.12"]
             [lein-figwheel "0.5.9"]]
-  :uberjar-name "milo-webapp.jar"
-  :main milo.server.main
-  :profiles {:uberjar {:aot :all
-                       :main milo.server.main}
-             :dev {:source-paths ["dev"]
+  :profiles {:dev {:source-paths ["dev"]
                    :target-path "target/dev"
                    :dependencies [[org.clojure/test.check "0.9.0"]
                                   [org.clojure/tools.namespace "0.2.11"]
@@ -63,17 +58,27 @@
                            :compiler {:main "milo.client.core"
                                       :asset-path "js"
                                       :optimizations :none
+                                      :closure-defines {milo.client.events/server "goose:8001"}
                                       :source-map true
-                                      :source-map-timestamp true}}
-                     :production {:compiler {:optimizations :advanced
-                                             :elide-asserts true
-                                             :pretty-print false}}}}}}
+                                      :source-map-timestamp true}}}}}
+             :production {:aot :all
+                          :main milo.server.main
+                          :uberjar-name "milo-webapp.jar"
+                          :cljsbuild
+                          {:builds
+                           {:production
+                            {:compiler {:output-dir "target"
+                                        :optimizations :advanced
+                                        :elide-asserts true
+                                        :closure-defines {milo.client.events/server "misplaced-villages.herokuapp.com"}
+                                        :pretty-print false}}}}}}
   :cljsbuild {:builds {:dev {:source-paths ["src/cljs"]
                              :compiler {:output-dir "resources/public/js"
                                         :output-to "resources/public/client.js"}}
                        :production {:source-paths ["src/cljs"]
-                                    :compiler {:output-dir "target/client"
+                                    :compiler {:output-dir "target/js"
                                                :output-to "resources/public/client.js"}}}}
   :figwheel {:repl false
              :http-server-root "public"}
-  :aliases {"production-client" ["do" "clean" ["cljsbuild" "once" "production"]]})
+  :clean-targets ^{:protect false} ["resources/public/js"]
+  :aliases {"production-client" ["with-profile" "production" "do" "clean" ["cljsbuild" "once" "client"] ["uberjar"]]})

@@ -1,12 +1,16 @@
 (ns milo.client.events
   (:require [ajax.core :as ajax]
+            [cljs.core.async :refer [chan close! timeout]]
             [cognitect.transit :as transit]
             [milo.game :as game]
             [milo.player :as player]
             [milo.menu :as menu]
             [milo.move :as move]
             [re-frame.core :as rf]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log])
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
+
+(goog-define server "localhost:8000")
 
 (defmulti handle-message
   (fn [db message]
@@ -26,13 +30,15 @@
          :received-invites received-invites))
 
 (defmethod handle-message :sent-invite
-  [{events :events :as db} {event-id :milo/event-id invite :milo/invite :as response}]
+  [{events :events toaster :toaster :as db} {event-id :milo/event-id invite :milo/invite :as response}]
   (if (contains? events event-id)
     db
-    (-> db
-        (update :events conj event-id)
-        (update :messages conj (str "Invite sent to " (second invite) "!"))
-        (update :sent-invites conj invite))))
+    (let [message (str "You invited " (second invite) " to play!")]
+      (go (>! toaster {:message message}))
+      (-> db
+          (update :events conj event-id)
+          (update :messages conj message)
+          (update :sent-invites conj invite)))))
 
 (defmethod handle-message :received-invite
   [{events :events :as db} {event-id :milo/event-id invite :milo/invite}]
@@ -54,14 +60,17 @@
         (update :messages conj (str (second invite) " rejected your invite!")))))
 
 (defmethod handle-message :sent-invite-canceled
-  [{events :events :as db} {event-id :milo/event-id invite :milo/invite}]
+  [{events :events toaster :toaster :as db} {event-id :milo/event-id invite :milo/invite}]
   (log/debug "Sent invite canceled:" invite)
   (if (contains? events event-id)
     db
-    (-> db
-        (update :events conj event-id)
-        (update :sent-invites disj invite)
-        (update :messages conj (str "You canceled your invite for " (second invite) ".")))))
+    (let [message (str "You uninvited " (second invite) ".")]
+      (println "wat wat wat")
+      (go (>! toaster {:message message}))
+      (-> db
+          (update :events conj event-id)
+          (update :sent-invites disj invite)
+          (update :messages conj message)))))
 
 (defmethod handle-message :received-invite-canceled
   [{events :events :as db} {event-id :milo/event-id invite :milo/invite}]
@@ -309,11 +318,9 @@
  (fn [db [_ response]]
    (handle-message db response)))
 
-(defn initial-state
-  [player]
+(def slate
   {:screen :splash
    :socket nil
-   :player player
    :status-message "Initializing."
    :events #{}
    :active-games {}
@@ -324,22 +331,50 @@
    :source nil
    :destination nil})
 
-(defn connect
-  [db]
+(defn websocket!
+  []
   (let [secure? (= (.-protocol (.-location js/document)) "https:")
         protocol (if secure? "wss" "ws")
-        url (str protocol "://misplaced-villages.herokuapp.com/websocket")]
+        url (str protocol "://" server "/websocket")]
     (log/debug (str "Establishing websocket connection to " url "."))
-    (if-let [socket (js/WebSocket. url)]
-      (do (set! js/client-socket socket)
+    (when-let [socket (js/WebSocket. url)]
+      (do (log/debug "Connection established!")
           (set! (.-onopen socket) #(rf/dispatch [:socket-open]))
-          (assoc db :socket socket :status-message "Connecting..."))
-      (assoc db :screen :error :error-message "Failed to create socket."))))
+          socket))))
+
+(defn toaster!
+  []
+  (log/info "Plugging in toaster...")
+  (let [toaster (chan)]
+    (go-loop [counter 1]
+      (log/info (str "Waiting for toast..."))
+      (if-let [toast (<! toaster)]
+        (do (log/info (str "Toast #" counter ": " toast))
+            (rf/dispatch [:toast toast])
+            (<! (timeout (or (:length toast) 3000)))
+            (log/info "Untoasting...")
+            (rf/dispatch [:untoast])
+            (<! (timeout 500))
+            (recur (inc counter)))
+        (log/info "No more toast...")))
+    toaster))
 
 (rf/reg-event-db
  :initialize
  (fn [db [_ player]]
-   (connect (initial-state player))))
+   (when-let [socket (:socket db)]
+     (log/info "Closing websocket!")
+     (.close socket))
+   (when-let [toaster (:toaster db)]
+     (log/info "Unplugging toaster!")
+     (close! toaster))
+   (let [player (or (:player db) player)
+         toaster (chan)
+         websocket (websocket!)]
+     (if-not websocket
+       {:screen :error :status-message "Failed to create websocket."}
+       (let [toaster (toaster!)]
+         (assoc slate :player player :socket websocket :toaster toaster))))))
 
 (rf/reg-event-db
  :socket-open
@@ -362,13 +397,13 @@
 (rf/reg-event-db :generic-error handle-generic-error)
 
 (rf/reg-event-fx :send-invite send-invite)
-(rf/reg-event-db :invite-sent handle-message-response)
 
+(rf/reg-event-db :invite-sent handle-message-response)
 (rf/reg-event-fx :cancel-invite cancel-invite)
 (rf/reg-event-fx :reject-invite reject-invite)
 (rf/reg-event-db :deleted-invite handle-message-response)
-
 (rf/reg-event-fx :accept-invite accept-invite)
+
 (rf/reg-event-db :game-created handle-message-response)
 
 (rf/reg-event-fx :play-game play-game)
@@ -379,6 +414,11 @@
 (rf/reg-event-fx :take-turn take-turn)
 (rf/reg-event-db :turn-taken handle-turn-taken)
 (rf/reg-event-db :turn-rejected handle-turn-rejection)
+
+(rf/reg-event-db
+ :back-to-game
+ (fn [db _]
+   (assoc db :screen :game)))
 
 (rf/reg-event-db
  :player-change
@@ -406,3 +446,20 @@
    (-> db
        (assoc :card card)
        (dissoc :move-message))))
+
+(rf/reg-event-db
+ :change-invite-recipient
+ (fn [db [_ recipient]]
+   (assoc db :invite-recipient recipient)))
+
+(rf/reg-event-db
+ :toast
+ (fn [db [_ toast]]
+   (log/debug (str "Changing toast to " toast))
+   (assoc db :toast toast)))
+
+(rf/reg-event-db
+ :untoast
+ (fn [db [_ toast]]
+   (log/debug (str "Untoasting" toast))
+   (dissoc db :toast)))

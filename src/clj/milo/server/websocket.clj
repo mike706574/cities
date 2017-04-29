@@ -17,6 +17,7 @@
 
 (defn handle
   [{:keys [games invites player-bus conn-manager] :as deps} req]
+  (println "FOOF")
   (d/let-flow [conn (d/catch
                         (http/websocket-connection req)
                         (constantly nil))]
@@ -37,7 +38,7 @@
               (s/connect-via
                (bus/subscribe player-bus player)
                (fn [message]
-                 (log/trace (str conn-label "Preparing message."))
+                 (log/debug (str conn-label "Preparing " (:milo/status message) " message for " player "."))
                  (s/put! conn (encode message)))
                conn)
               (log/debug (str conn-label "Connected player \"" player "\".")))

@@ -58,6 +58,7 @@
             (if (contains? #{:invite-already-sent :invite-already-received} status)
               (body-response 409 request response)
               (do (log/debug (str "[#" event-id "] Sent invite " invite))
+                  (println sender "..." recipient)
                   (bus/publish! player-bus sender response)
                   (bus/publish! player-bus recipient (assoc response :milo/status :received-invite))
                   (body-response 201 request response)))))))))
@@ -181,8 +182,7 @@
                                                 :milo.game/status status
                                                 :milo.move/move move}))))))))
 
-
-(defn handle-retrieval
+(defn handle-game-retrieval
   [{:keys [games] :as deps} request]
   (handle-exceptions request
     (or (not-acceptable request)
