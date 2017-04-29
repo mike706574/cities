@@ -210,7 +210,9 @@
      [button "Play" #(rf/dispatch [:back-to-game])]
      (expedition-score-tables round player opponent)]))
 
-(defn splash []
+(defn splash
+  []
+
   [:p @(rf/subscribe [:status-message])])
 
 (defn received-invites []
@@ -268,11 +270,11 @@
        [:button.mdl-snackbar__action
         {:type "button"
          :on-click #(rf/dispatch action-event)}
-        (or action-event "Perform Action")])]
+        (or action-label "Perform Action")])]
     [:div#toast.mdl-js-snackbar.mdl-snackbar
      {:class ""
       :aria-hidden "true"}
-     [:div.mdl-snackbar__text toast]]))
+     [:div.mdl-snackbar__text ""]]))
 
 (defn sent-invites []
   (let [invites @(rf/subscribe [:sent-invites])]
@@ -348,14 +350,11 @@
                        "mike" "abby"
                        "abby" "mike")]
     (log/debug "Rendering menu.")
-    [:div.mdl-layout__conent
-     [:div.mdl-grid.demo-content
-      [:div.mdl-cell.mdl-cell--12-col
-       {:style {"minHeight" "1000px"}}
-       [ready-games]
-       [waiting-games]
-       [received-invites]
-       [outbox]]]]))
+    [:div
+     [ready-games]
+     [waiting-games]
+     [received-invites]
+     [outbox]]))
 
 (defn container
   [body]
@@ -375,7 +374,9 @@
        [[mdl/layout-title :label app-title]]]
       [mdl/layout-content
        :attr {:style {:background "white"}}
-       :children [body
+       :children [[:div.mdl-layout__conent
+                   [:div.mdl-grid.demo-content
+                    [:div.mdl-cell.mdl-cell--12-col body]]]
                   [toast]]]]]]])
 
 (defn app []

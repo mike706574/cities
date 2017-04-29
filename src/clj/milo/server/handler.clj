@@ -22,18 +22,6 @@
             [selmer.parser :as selmer]
             [taoensso.timbre :as log]))
 
-(def users {"admin" {:username "admin"
-                     :password (creds/hash-bcrypt "admin")
-                     :roles #{::admin}}
-            "mike" {:username "mike"
-                    :password (creds/hash-bcrypt "mike")
-                    :roles #{::user}}
-            "abby" {:username "abby"
-                    :password (creds/hash-bcrypt "abby")
-                    :roles #{::user}}})
-
-(derive ::admin ::user)
-
 (defn api-routes
   [deps]
   (compojure/routes
@@ -69,7 +57,7 @@
   (compojure/routes
    (GET "/" req
         (friend/authorize
-         #{::user}
+         #{:milo/user}
          (let [name (:current (friend/identity req))]
            (selmer/render-file "templates/client.html" {:player name}))))
 
@@ -89,7 +77,7 @@
    (route/not-found "No such page.")))
 
 (defn site-handler
-  [deps]
+  [{users :users :as deps}]
   (-> (site-routes deps)
       (friend/authenticate
        {:credential-fn (partial creds/bcrypt-credential-fn users)
@@ -102,7 +90,7 @@
   (handler [this]))
 
 (defrecord MiloHandlerFactory [games invites game-bus player-bus
-                               event-manager conn-manager]
+                               event-manager conn-manager users]
   HandlerFactory
   (handler [this]
     (let [api (api-handler this)
@@ -116,4 +104,4 @@
   []
   (component/using (map->MiloHandlerFactory {})
                    [:games :invites :game-bus :player-bus
-                    :event-manager :conn-manager]))
+                    :event-manager :conn-manager :users]))

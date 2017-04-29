@@ -25,21 +25,15 @@
   []
   (cljs.pprint/pprint @(rf/subscribe [:db])))
 
-(defn init
+(defn ^:export run
   [player]
+  (log/info (str "Running application as " player "."))
   (if (= player "")
     (throw (js/Error. "No player provided."))
     (do
       (rf/dispatch-sync [:initialize player])
       (r/render [views/app] (js/document.getElementById "app")))))
 
-(defn ^:export run
-  [player]
-  (log/info (str "Running application as " player "."))
-  (set! js/client-player player)
-  (init player))
-
 (defn ^:export refresh []
   (log/info "Refreshing application.")
-  (do (rf/dispatch-sync [:initialize])
-      (r/render [views/app] (js/document.getElementById "app"))))
+  (rf/dispatch-sync [:initialize]))

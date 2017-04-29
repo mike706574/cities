@@ -47,23 +47,23 @@
          event))))
 
 (defn handle-sending-invite
-  [{:keys [player-bus] :as deps} request]
+  [{:keys [player-bus users] :as deps} request]
   (handle-exceptions request
     (with-body [invite ::invite request]
       (let [[sender recipient] invite
             player (get-in request [:headers "player"])]
-        (if-not (= player sender)
-          (body-response 403 request {:milo.server/message "Sending invites for other players is not allowed."})
-          (if (= sender recipient)
-            (body-response 409 request {:milo.server/message "You can't invite yourself."})
-            (let [{status :milo/status event-id :milo/event-id :as response} (send-invite deps invite)]
-              (if (contains? #{:invite-already-sent :invite-already-received} status)
-                (body-response 409 request response)
-                (do (log/debug (str "[#" event-id "] Sent invite " invite))
-                    (println sender "..." recipient)
-                    (bus/publish! player-bus sender response)
-                    (bus/publish! player-bus recipient (assoc response :milo/status :received-invite))
-                    (body-response 201 request response))))))))))
+        (cond
+          (not (= player sender)) (body-response 403 request {:milo.server/message "Sending invites for other players is not allowed."})
+          (= sender recipient) (body-response 409 request {:milo.server/message "You can't invite yourself."})
+          (not (contains? users recipient)) (body-response 409 request {:milo.server/message (str "Player " recipient " does not exist.")})
+          :else
+          (let [{status :milo/status event-id :milo/event-id :as response} (send-invite deps invite)]
+            (if (contains? #{:invite-already-sent :invite-already-received} status)
+              (body-response 409 request response)
+              (do (log/debug (str "[#" event-id "] Sent invite " invite))
+                  (bus/publish! player-bus sender response)
+                  (bus/publish! player-bus recipient (assoc response :milo/status :received-invite))
+                  (body-response 201 request response)))))))))
 
 (defn delete-invite
   [{:keys [event-manager invites]} invite]

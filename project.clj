@@ -1,6 +1,6 @@
 (defproject org.clojars.mike706574/milo-webapp "0.0.1-SNAPSHOT"
-  :description "Describe me!"
-  :url "https://github.com/mike706574/milo-server"
+  :description "A card game."
+  :url "https://github.com/mike706574/milo-webapp"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :min-lein-version "2.0.0"
@@ -33,10 +33,11 @@
                  ;; ClojureScript
                  [org.clojure/clojurescript "1.9.521"]
                  [com.cognitect/transit-cljs "0.8.239"]
+
                  [cljsjs/react-with-addons "15.4.2-2"]
-                 [reagent "0.6.1"]
                  [com.yetanalytics/re-mdl "0.1.5"]
-                 [re-frame "0.9.2"]
+                 [reagent "0.6.1" :exclusions [cljsjs/react]]
+                 [re-frame "0.9.2" :exclusions [cljsjs/react]]
 
                  [day8.re-frame/http-fx "0.1.3"]
                  [cljs-ajax "0.5.9"]]
@@ -53,35 +54,27 @@
                                   [org.clojure/tools.namespace "0.2.11"]
                                   [com.cemerick/piggieback "0.2.1"]
                                   [figwheel-sidecar "0.5.9"]]
-                   :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
-                   :cljsbuild
-                   {:builds
-                    {:dev {:figwheel {:on-jsload "milo.client.core/refresh"
-                                      :websocket-host "192.168.1.141"}
-                           :compiler {:main "milo.client.core"
-                                      :asset-path "js"
-                                      :optimizations :none
-                                      :closure-defines {milo.client.events/server "goose:8001"}
-                                      :source-map true
-                                      :source-map-timestamp true}}}}}
+                   :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}}
              :production {:aot :all
                           :main milo.server.main
-                          :uberjar-name "milo-webapp.jar"
-                          :cljsbuild
-                          {:builds
-                           {:production
-                            {:compiler {:output-dir "target"
-                                        :optimizations :advanced
-                                        :elide-asserts true
-                                        :closure-defines {milo.client.events/server "misplaced-villages.herokuapp.com"}
-                                        :pretty-print false}}}}}}
+                          :uberjar-name "milo-webapp.jar"}}
   :cljsbuild {:builds {:dev {:source-paths ["src/cljs"]
-                             :compiler {:output-dir "resources/public/js"
+                             :compiler {:main "milo.client.core"
+                                        :asset-path "js"
+                                        :closure-defines {milo.client.events/server "goose:8001"}
+                                        :source-map true
+                                        :source-map-timestamp true
+                                        :optimizations :none
+                                        :output-dir "resources/public/js"
                                         :output-to "resources/public/client.js"}}
                        :production {:source-paths ["src/cljs"]
                                     :compiler {:output-dir "target/js"
+                                               :optimizations :advanced
+                                               :elide-asserts true
+                                               :closure-defines {milo.client.events/server "misplaced-villages.herokuapp.com"}
+                                               :pretty-print false
                                                :output-to "resources/public/client.js"}}}}
   :figwheel {:repl false
              :http-server-root "public"}
-  :clean-targets ^{:protect false} ["resources/public/js"]
-  :aliases {"production-build" ["with-profile" "production" "do" "clean" ["cljsbuild" "once" "client"] ["uberjar"]]})
+  :clean-targets ^{:protect false} ["resources/public/client.js" "resources/public/js"]
+  :aliases {"production-build" ["with-profile" "production" "do" "clean" ["cljsbuild" "once" "production"] ["uberjar"]]})

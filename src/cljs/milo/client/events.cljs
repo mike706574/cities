@@ -6,6 +6,7 @@
             [milo.player :as player]
             [milo.menu :as menu]
             [milo.move :as move]
+            [reagent.core :as r]
             [re-frame.core :as rf]
             [taoensso.timbre :as log])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
@@ -30,12 +31,13 @@
          :received-invites received-invites))
 
 (defmethod handle-message :sent-invite
-  [{events :events toaster :toaster :as db} {event-id :milo/event-id invite :milo/invite :as response}]
+  [{:keys [events toaster] :as db} {event-id :milo/event-id invite :milo/invite :as response}]
   (if (contains? events event-id)
     db
     (let [recipient (second invite)
           message (str "You invited " recipient " to play.")]
       (go (>! toaster {:message message
+                       :action-label "Cancel"
                        :action-event [:cancel-invite recipient]}))
       (-> db
           (update :events conj event-id)
@@ -43,13 +45,17 @@
           (update :sent-invites conj invite)))))
 
 (defmethod handle-message :received-invite
-  [{events :events :as db} {event-id :milo/event-id invite :milo/invite}]
+  [{:keys [events toaster] :as db} {event-id :milo/event-id invite :milo/invite}]
   (if (contains? events event-id)
     db
-    (-> db
-        (update :events conj event-id)
-        (update :received-invites conj invite)
-        (update :messages conj (str (first invite) " invited you to play!")))))
+    (let [sender (first invite)
+          message (str sender " invited you to play!")]
+      (go (>! toaster {:message message}))
+      (-> db
+          (update :events conj event-id)
+          (update :received-invites conj invite)
+          (update :messages conj message)))))
+
 
 (defmethod handle-message :sent-invite-rejected
   [{events :events :as db} {event-id :milo/event-id invite :milo/invite}]
