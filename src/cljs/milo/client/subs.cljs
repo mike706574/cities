@@ -164,8 +164,3 @@
  :toast
  (fn [db _]
    (:toast db)))
-
-(rf/reg-sub
- :invite-recipient
- (fn [db _]
-   (:invite-recipient db)))

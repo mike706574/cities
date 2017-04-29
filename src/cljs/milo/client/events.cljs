@@ -33,8 +33,10 @@
   [{events :events toaster :toaster :as db} {event-id :milo/event-id invite :milo/invite :as response}]
   (if (contains? events event-id)
     db
-    (let [message (str "You invited " (second invite) " to play!")]
-      (go (>! toaster {:message message}))
+    (let [recipient (second invite)
+          message (str "You invited " recipient " to play.")]
+      (go (>! toaster {:message message
+                       :action-event [:cancel-invite recipient]}))
       (-> db
           (update :events conj event-id)
           (update :messages conj message)
@@ -351,7 +353,7 @@
       (if-let [toast (<! toaster)]
         (do (log/info (str "Toast #" counter ": " toast))
             (rf/dispatch [:toast toast])
-            (<! (timeout (or (:length toast) 3000)))
+            (<! (timeout (or (:length toast) 2000)))
             (log/info "Untoasting...")
             (rf/dispatch [:untoast])
             (<! (timeout 500))
@@ -446,11 +448,6 @@
    (-> db
        (assoc :card card)
        (dissoc :move-message))))
-
-(rf/reg-event-db
- :change-invite-recipient
- (fn [db [_ recipient]]
-   (assoc db :invite-recipient recipient)))
 
 (rf/reg-event-db
  :toast

@@ -31,10 +31,13 @@
                  [selmer "1.10.7"]
 
                  ;; ClojureScript
-                 [org.clojure/clojurescript "1.9.495"]
+                 [org.clojure/clojurescript "1.9.521"]
                  [com.cognitect/transit-cljs "0.8.239"]
+                 [cljsjs/react-with-addons "15.4.2-2"]
                  [reagent "0.6.1"]
+                 [com.yetanalytics/re-mdl "0.1.5"]
                  [re-frame "0.9.2"]
+
                  [day8.re-frame/http-fx "0.1.3"]
                  [cljs-ajax "0.5.9"]]
   :source-paths ["src/clj" "src/cljc"]
@@ -81,4 +84,4 @@
   :figwheel {:repl false
              :http-server-root "public"}
   :clean-targets ^{:protect false} ["resources/public/js"]
-  :aliases {"production-client" ["with-profile" "production" "do" "clean" ["cljsbuild" "once" "client"] ["uberjar"]]})
+  :aliases {"production-build" ["with-profile" "production" "do" "clean" ["cljsbuild" "once" "client"] ["uberjar"]]})

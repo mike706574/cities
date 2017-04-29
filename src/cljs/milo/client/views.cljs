@@ -1,11 +1,15 @@
 (ns milo.client.views
   (:require [clojure.string :as str]
+            [reagent.core :as r]
             [re-frame.core :as rf]
+            [re-mdl.core :as mdl]
             [milo.game :as game]
             [milo.card :as card]
             [milo.player :as player]
             [milo.score :as score]
             [taoensso.timbre :as log]))
+
+(def app-title "Misplaced Villages")
 
 (defn button
   [label on-click]
@@ -209,21 +213,6 @@
 (defn splash []
   [:p @(rf/subscribe [:status-message])])
 
-(defn sent-invites []
-  (let [invites @(rf/subscribe [:sent-invites])]
-    (letfn [(list-item [index invite]
-              [:li.mdl-list__item {:key index}
-               [:span.mdl-list__item-primary-content
-                (str "You invited " (second invite) " to play.")]
-               [:span.mdl-list__item-secondary-content
-                (button "Cancel" #(rf/dispatch [:cancel-invite (second invite)]))]])]
-      [:div
-       [:h5 "Sent Invites"]
-       (if (empty? invites)
-         [:span "No invites sent."]
-         [:ul.demo-list-item.mdl-list
-          (map-indexed list-item invites)])])))
-
 (defn received-invites []
   (let [invites @(rf/subscribe [:received-invites])]
     (letfn [(list-item [index invite]
@@ -235,9 +224,9 @@
                [:span.mdl-list__item-secondary-content
                 (button "Reject" #(rf/dispatch [:reject-invite (first invite)]))]])]
       [:div
-       [:h5 "Received Invites"]
+       [:h5 {:style {"margin" "0"}} "Received Invites"]
        (if (empty? invites)
-         [:p "You have no invites."]
+         [:p {:style {"marginTop" "1em" "marginBottom" "1em"} } "You haven't received any invites."]
          [:ul.demo-list-item.mdl-list
           (map-indexed list-item invites)])])))
 
@@ -285,31 +274,67 @@
       :aria-hidden "true"}
      [:div.mdl-snackbar__text toast]]))
 
+(defn sent-invites []
+  (let [invites @(rf/subscribe [:sent-invites])]
+    (letfn [(list-item [index invite]
+              [:li.mdl-list__item {:key index}
+               [:span.mdl-list__item-primary-content
+                (str "You invited " (second invite) " to play.")]
+               [:span.mdl-list__item-secondary-content
+                (button "Cancel" #(rf/dispatch [:cancel-invite (second invite)]))]])]
+      (if (empty? invites)
+        [:p {:style {"marginTop" "1em" "marginBottom" "1em"} } "You haven't sent any invites."]
+        [:ul.demo-list-item.mdl-list
+         (map-indexed list-item invites)]))))
+
 (defn invite-form []
-  (let [invite-recipient @(rf/subscribe [:invite-recipient])]
-    [:div
-     [:h5 "Start Game"]
-     [:input
-      {:type "text"
-       :on-change #(rf/dispatch [:change-invite-recipient (-> % .-target .-value)])
-       :value invite-recipient}]
-     [button (str "Send Invite") #(rf/dispatch [:send-invite invite-recipient])]]))
+  (let [recipient-model (r/atom "")
+        res "^([a-zA-Z0-9_-])+$"
+        re (re-pattern res)]
+    (fn []
+      (let [player @(rf/subscribe [:player])
+            recipient @recipient-model
+            valid? (and (re-find re recipient)
+                        (not= player recipient))
+            send-invite #(when valid?
+                           (reset! recipient-model "")
+                           (rf/dispatch [:send-invite recipient]))]
+        (println recipient  " VALID?" valid?)
+        (println "find?" (re-find re recipient))
+        [:div
+         [mdl/textfield
+          :floating-label? true
+          :label "Player"
+          :model recipient
+          :pattern res
+          :invalid-message "Invalid!"
+          :handler-fn #(reset! recipient-model %)
+          :input-attr {:maxLength 33
+                       :on-key-press #(when (= (.-charCode %) 13)
+                                        (send-invite))}]
+         [mdl/button
+          :child "Clear"
+          :secondary? true
+          :raised? true
+          :ripple-effect? true
+          :disabled? (str/blank? recipient)
+          :attr {:on-click #(reset! recipient-model "")
+                 :style {"marginLeft" "1em"}}]
+         [mdl/button
+          :child "Send Invite"
+          :colored? true
+          :raised? true
+          :ripple-effect? true
+          :disabled? (not valid?)
+          :attr {:on-click send-invite
+                 :style {"marginLeft" "1em"}}]]))))
 
-(defn menu
+(defn outbox
   []
-  (let [player @(rf/subscribe [:player])
-        other-player (case player
-                       "mike" "abby"
-                       "abby" "mike")]
-    (log/debug "Rendering menu.")
-      [:div
-       [toast]
-       [ready-games]
-       [waiting-games]
-       [received-invites]
-       [invite-form]
-
-       [sent-invites]]))
+  [:div
+   [:h5 {:style {"margin" "0"}} "Sent invites"]
+   [invite-form]
+   [sent-invites]])
 
 (defn error []
   [:div
@@ -317,13 +342,49 @@
    [:h5 "Error!"]
    [:p (str @(rf/subscribe [:error-message]))]])
 
+(defn menu []
+  (let [player @(rf/subscribe [:player])
+        other-player (case player
+                       "mike" "abby"
+                       "abby" "mike")]
+    (log/debug "Rendering menu.")
+    [:div.mdl-layout__conent
+     [:div.mdl-grid.demo-content
+      [:div.mdl-cell.mdl-cell--12-col
+       {:style {"minHeight" "1000px"}}
+       [ready-games]
+       [waiting-games]
+       [received-invites]
+       [outbox]]]]))
+
+(defn container
+  [body]
+  [:div
+   [:div.mdl-demo-navigation
+    [mdl/layout
+     :fixed-header? true
+     :children
+     [[mdl/layout-header
+       :attr {:style {:color "white"}}
+       :children
+       [[mdl/layout-header-row
+         :children
+         [[mdl/layout-title :label app-title]]]]]
+      [mdl/layout-drawer
+       :children
+       [[mdl/layout-title :label app-title]]]
+      [mdl/layout-content
+       :attr {:style {:background "white"}}
+       :children [body
+                  [toast]]]]]]])
+
 (defn app []
   (let [screen @(rf/subscribe [:screen])]
     (case screen
       :splash [splash]
-      :game [game]
+      :game [container [game]]
       :round-over [round-over]
       :game-over [game-over]
-      :menu [menu]
-      :error [error]
+      :menu [container [menu]]
+      :error [container [error]]
       (throw (js/Error. (str "Invalid screen: " screen))))))

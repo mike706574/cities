@@ -15,7 +15,6 @@
 (defn- start-service
   [{:keys [id port] :as service} handler-factory]
   (log/info (str "Starting " id " on port " port "..."))
-  (println "EPKLWJE:LWKJROIWEKNJL>EKLNWOI")
   (try
     (let [handler (handler/handler handler-factory)
           server (aleph-http/start-server handler {:port port})]

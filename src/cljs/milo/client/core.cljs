@@ -3,7 +3,7 @@
             [milo.client.events]
             [milo.client.subs]
             [milo.client.views :as views]
-            [reagent.core :as reagent]
+            [reagent.core :as r]
             [re-frame.core :as rf]
             [taoensso.timbre :as log]))
 
@@ -31,7 +31,7 @@
     (throw (js/Error. "No player provided."))
     (do
       (rf/dispatch-sync [:initialize player])
-      (reagent/render [views/app] (js/document.getElementById "app")))))
+      (r/render [views/app] (js/document.getElementById "app")))))
 
 (defn ^:export run
   [player]
@@ -42,4 +42,4 @@
 (defn ^:export refresh []
   (log/info "Refreshing application.")
   (do (rf/dispatch-sync [:initialize])
-      (reagent/render [views/app] (js/document.getElementById "app"))))
+      (r/render [views/app] (js/document.getElementById "app"))))
