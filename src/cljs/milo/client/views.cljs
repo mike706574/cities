@@ -212,8 +212,12 @@
 
 (defn splash
   []
+  [:div.demo-layout.mdl-layout.mdl-js-layout
+   {:style {"alignItems" "center"}}
+   [:main.mdl-layout__content
+    [:p @(rf/subscribe [:status-message])]]]
+  )
 
-  [:p @(rf/subscribe [:status-message])])
 
 (defn received-invites []
   (let [invites @(rf/subscribe [:received-invites])]
@@ -336,22 +340,20 @@
    [sent-invites]])
 
 (defn error []
+  (let [{:keys [error-message error-body]} @(rf/subscribe [:error])]
   [:div
    [back-button]
    [:h5 "Error!"]
-   [:p (str @(rf/subscribe [:error-message]))]])
+   [:p error-message]
+   [:textarea {:rows "10" :cols "100"} error-body]]))
 
 (defn menu []
-  (let [player @(rf/subscribe [:player])
-        other-player (case player
-                       "mike" "abby"
-                       "abby" "mike")]
-    (log/debug "Rendering menu.")
-    [:div
-     [ready-games]
-     [waiting-games]
-     [received-invites]
-     [outbox]]))
+  (log/debug "Rendering menu.")
+  [:div
+   [ready-games]
+   [waiting-games]
+   [received-invites]
+   [outbox]])
 
 (defn container
   [body]
@@ -386,3 +388,12 @@
       :menu [container [menu]]
       :error [container [error]]
       (throw (js/Error. (str "Invalid screen: " screen))))))
+
+(defn initialization-error
+  [body]
+  [:div
+   [:h5 "Initialization error!"]
+   [:textarea
+    {:rows "100"
+     :cols "100"
+     :value (with-out-str (cljs.pprint/pprint body))}]])

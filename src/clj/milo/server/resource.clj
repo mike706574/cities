@@ -196,3 +196,9 @@
                                         :milo.game/game (model/game-for player game)} )
             (body-response 404 request {:milo/status :game-not-found
                                         :milo.game/id game-id}))))))
+
+(defn handle-menu-retrieval
+  [{:keys [games invites] :as deps} request]
+  (handle-exceptions request
+    (let [player (get-in request [:headers "player"])]
+      (body-response 200 request (model/menu-for player @games @invites)))))

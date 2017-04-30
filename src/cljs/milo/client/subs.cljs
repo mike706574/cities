@@ -59,9 +59,9 @@
    (:player db)))
 
 (rf/reg-sub
- :error-message
+ :error
  (fn [db _]
-   (:error-message db)))
+   (select-keys db [:error-message :error-body])))
 
 
 ;; Move

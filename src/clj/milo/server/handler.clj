@@ -28,6 +28,7 @@
    (GET "/api/game/:id" request (resource/handle-game-retrieval deps request))
    (PUT "/api/game/:id" request (resource/handle-turn deps request))
    (POST "/api/game" request (resource/handle-accepting-invite deps request))
+   (GET "/api/menu" request (resource/handle-menu-retrieval deps request))
    (POST "/api/invite" request (resource/handle-sending-invite deps request))
    (GET "/api/invites" request (resource/handle-sending-invite deps request))
    (DELETE "/api/invite/:sender/:recipient" request (resource/handle-deleting-invite deps request))

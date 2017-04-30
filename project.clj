@@ -41,7 +41,7 @@
 
                  [day8.re-frame/http-fx "0.1.3"]
                  [cljs-ajax "0.5.9"]]
-  :source-paths ["src/clj" "src/cljc"]
+  :source-paths ["src/clj" "src/cljc" "dev"]
   :test-paths ["test/clj"]
   :plugins [[com.palletops/uberimage "0.4.1"]
             [lein-cljsbuild "1.1.5"]

@@ -30,19 +30,16 @@
           (try
             (let [player (decode initial-message)]
               (log/debug (str conn-label "Connecting player \"" player "\"."))
-              ;; Give player current menu state
-              (let [state (model/menu-for player @games @invites)
-                    state-message (assoc state :milo/status :state)]
-                (s/put! conn (encode state-message)))
-              ;; Player updates
+              ;; Updates
               (s/connect-via
                (bus/subscribe player-bus player)
                (fn [message]
                  (log/debug (str conn-label "Preparing " (:milo/status message) " message for " player "."))
                  (s/put! conn (encode message)))
                conn)
-              (log/debug (str conn-label "Connected player \"" player "\".")))
-            {:status 101}
+              (log/debug (str conn-label "Connected player \"" player "\"."))
+              (s/put! conn (encode {:milo/status :connected}))
+              {:status 101})
             (catch Exception e
               (log/error e (str conn-label "Exception thrown while connecting player. Initial message: " initial-message))
               {:status 500})))))))
