@@ -14,7 +14,6 @@
 
 (defn- start-service
   [{:keys [id port] :as service} handler-factory]
-  (println "Hello? Starting service?")
   (log/info (str "Starting " id " on port " port "..."))
   (try
     (let [handler (handler/handler handler-factory)

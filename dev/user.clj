@@ -111,5 +111,3 @@
 (def deck-1 (concat first-8 second-8 last-4))
 
 (def test-game (game/game ["mike" "abby"] [deck-1 deck-1 deck-1] 4))
-
-(println "HELLO")
