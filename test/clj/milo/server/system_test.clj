@@ -6,7 +6,6 @@
             [manifold.deferred :as d]
             [milo.card :as card]
             [milo.game :as game]
-            [milo.menu :as menu]
             [milo.server.system :as system]
             [milo.server.message :refer [encode decode]]
             [taoensso.timbre :as log]))
@@ -74,12 +73,13 @@
 ;; TODO: Handle errors
 (defn connect!
   [id]
-  (let [conn @(http/websocket-client "ws://localhost:10000/menu-websocket")]
+  (let [conn @(http/websocket-client "ws://localhost:10000/websocket")]
     (send! conn id)
-    (flush! conn)
+    (is (not= :timeout
+              (receive! conn)))
     conn))
 
-(deftest cancelling-an-invite
+(deftest canceling-an-invite
   (with-system
     (let [mike-conn (connect! "mike")
           abby-conn (connect! "abby")]
@@ -93,14 +93,15 @@
         (is (= 200 status))
         (is (= {:milo/event-id 1
                 :milo/status :sent-invite-canceled
-                :milo.menu/invite ["mike" "abby"]} body)))
+                :milo/invite ["mike" "abby"]} body)))
       (is (= #{} @(:invites system)))
       (is (= {:milo/event-id 1
               :milo/status :sent-invite-canceled
-              :milo.menu/invite ["mike" "abby"]} (receive! mike-conn)))
-      (is (= {:milo/event-id 1
-              :milo/status :received-invite-canceled
-              :milo.menu/invite ["mike" "abby"]} (receive! abby-conn))))))
+              :milo/invite ["mike" "abby"]} (receive! mike-conn)))
+      (is (= #:milo{:status :received-invite-canceled,
+                    :invite ["mike" "abby"],
+                    :event-id 1}
+             (receive! abby-conn))))))
 
 (deftest rejecting-an-invite
   (with-system
@@ -116,14 +117,14 @@
         (is (= 200 status))
         (is (= {:milo/event-id 1
                 :milo/status :received-invite-rejected
-                :milo.menu/invite ["mike" "abby"]} body)))
+                :milo/invite ["mike" "abby"]} body)))
       (is (= #{} @(:invites system)))
       (is (= {:milo/event-id 1
               :milo/status :sent-invite-rejected
-              :milo.menu/invite ["mike" "abby"]} (receive! mike-conn)))
+              :milo/invite ["mike" "abby"]} (receive! mike-conn)))
       (is (= {:milo/event-id 1
               :milo/status :received-invite-rejected
-              :milo.menu/invite ["mike" "abby"]} (receive! abby-conn))))))
+              :milo/invite ["mike" "abby"]} (receive! abby-conn))))))
 
 (deftest sending-an-invite
   (with-system
@@ -139,14 +140,14 @@
         (is (= 201 status))
         (is (= {:milo/event-id 1
                 :milo/status :sent-invite
-                :milo.menu/invite ["mike" "abby"]} body)))
+                :milo/invite ["mike" "abby"]} body)))
       (is (= #{["mike" "abby"]} @(:invites system)))
       (is (= {:milo/event-id 1
               :milo/status :sent-invite
-              :milo.menu/invite ["mike" "abby"]} (receive! mike-conn)))
+              :milo/invite ["mike" "abby"]} (receive! mike-conn)))
       (is (= {:milo/event-id 1
               :milo/status :received-invite
-              :milo.menu/invite ["mike" "abby"]} (receive! abby-conn))))))
+              :milo/invite ["mike" "abby"]} (receive! abby-conn))))))
 
 (deftest accepting-an-invite
   (with-system
@@ -160,25 +161,30 @@
                                                       :body (encode ["mike" "abby"])
                                                       :throw-exceptions false}) )]
         (is (= 201 status))
-        (is (= {:milo/event-id 1
-                :milo/status :game-created}
+        (is (= #:milo{:status :game-created, :invite ["mike" "abby"], :event-id 1}
                (dissoc body :milo.game/game))))
       (is (= #{} @(:invites system)))
       (let [turn (get-in (get @(:games system) "1")
                          [:milo.game/round :milo.game/turn])]
         (is (= {:milo/status :game-created,
-                :milo.game/game #:milo.game{:id "1",
-                                            :opponent "abby",
-                                            :over? false,
-                                            :round-number 1,
-                                            :turn turn},
+                :milo.game/game
+                #:milo.game{:id "1",
+                            :opponent "abby",
+                            :over? false,
+                            :loaded? false,
+                            :round-number 1,
+                            :turn turn},
+                :milo/invite ["mike" "abby"],
                 :milo/event-id 1}
                (receive! mike-conn)))
         (is (= {:milo/status :game-created,
-                :milo.game/game #:milo.game{:id "1",
-                                            :opponent "mike",
-                                            :over? false,
-                                            :round-number 1,
-                                            :turn turn},
+                :milo.game/game
+                #:milo.game{:id "1",
+                            :opponent "mike",
+                            :over? false,
+                            :loaded? false,
+                            :round-number 1,
+                            :turn turn},
+                :milo/invite ["mike" "abby"],
                 :milo/event-id 1}
                (receive! abby-conn)))))))

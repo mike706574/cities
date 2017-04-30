@@ -1,6 +1,7 @@
 (ns milo.client.events
   (:require [ajax.core :as ajax]
             [cljs.core.async :refer [chan close! timeout]]
+            [clojure.string :as str]
             [cognitect.transit :as transit]
             [milo.game :as game]
             [milo.player :as player]
@@ -10,8 +11,6 @@
             [re-frame.core :as rf]
             [taoensso.timbre :as log])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
-
-(goog-define server "localhost:8000")
 
 (defmulti handle-message
   (fn [db message]
@@ -343,7 +342,10 @@
   []
   (let [secure? (= (.-protocol (.-location js/document)) "https:")
         protocol (if secure? "wss" "ws")
-        url (str protocol "://" server "/websocket")]
+        port (-> js/window .-location .-port)
+        host (-> js/window .-location .-hostname )
+        base (if (str/blank? port) host (str host ":" port))
+        url (str protocol "://" base "/websocket")]
     (log/debug (str "Establishing websocket connection to " url "."))
     (when-let [socket (js/WebSocket. url)]
       (do (log/debug "Connection established!")

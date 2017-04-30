@@ -1,0 +1,5 @@
+#!/bin/sh
+rm -rf resources/public/client.js
+rm -rf resources/public/js
+lein cljsbuild once production
+lein uberjar

@@ -112,4 +112,4 @@
 
 (def test-game (game/game ["mike" "abby"] [deck-1 deck-1 deck-1] 4))
 
-system
+(println "HELLO")

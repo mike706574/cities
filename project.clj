@@ -63,7 +63,6 @@
                                         :websocket-host "192.168.1.141"}
                              :compiler {:main "milo.client.core"
                                         :asset-path "js"
-                                        :closure-defines {milo.client.events/server "goose:8001"}
                                         :source-map true
                                         :source-map-timestamp true
                                         :optimizations :none
@@ -73,10 +72,9 @@
                                     :compiler {:output-dir "target/js"
                                                :optimizations :advanced
                                                :elide-asserts true
-                                               :closure-defines {milo.client.events/server "misplaced-villages.herokuapp.com"}
                                                :pretty-print false
                                                :output-to "resources/public/client.js"}}}}
   :figwheel {:repl false
              :http-server-root "public"}
-  :clean-targets ^{:protect false} ["resources/public/client.js" "resources/public/js"]
+  :clean-targets ^{:protect false} ["resources/public/js"]
   :aliases {"production-build" ["with-profile" "production" "do" "clean" ["cljsbuild" "once" "production"] ["uberjar"]]})

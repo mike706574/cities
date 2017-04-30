@@ -261,7 +261,6 @@
        (game-list games)])))
 
 (defn toast []
-  (println "Toasting!")
   (if-let [{:keys [message action-event action-label color]} @(rf/subscribe [:toast])]
     [:div#toast.mdl-js-snackbar.mdl-snackbar.mdl-snackbar--active
      {:aria-hidden "false"}
@@ -301,8 +300,6 @@
             send-invite #(when valid?
                            (reset! recipient-model "")
                            (rf/dispatch [:send-invite recipient]))]
-        (println recipient  " VALID?" valid?)
-        (println "find?" (re-find re recipient))
         [:div
          [mdl/textfield
           :floating-label? true
