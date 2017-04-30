@@ -41,6 +41,7 @@
   (is (= [{} {"1" #:milo.game{:id nil,
                               :opponent "abby",
                               :over? false,
+                              :loaded? false,
                               :round-number 1,
                               :turn "mike"}}]
          (model/game-summaries-for "mike" {"1" test-game}))))
