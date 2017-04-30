@@ -23,6 +23,7 @@
 
 (defn system
   [config]
+  (log/info "Building system.")
   {:player-bus (bus/event-bus)
    :game-bus (bus/event-bus)
 

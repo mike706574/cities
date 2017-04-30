@@ -9,6 +9,8 @@
   [& [port]]
   (let [port (Integer. (or port (env :port) 5000))]
     (log/info (str "Using port " port "."))
-    (component/start-system
-     (system/system {:id "milo" :port port}))
+    (let [system (system/system {:id "milo" :port port})]
+      (log/info "Starting system.")
+      (component/start-system system))
+    (log/info "Waiting forever.")
     @(promise)))

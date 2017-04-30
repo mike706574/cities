@@ -59,6 +59,8 @@
                           :main milo.server.main
                           :uberjar-name "milo-webapp.jar"}}
   :cljsbuild {:builds {:dev {:source-paths ["src/cljs"]
+                             :figwheel {:on-jsload "milo.client.core/refresh"
+                                        :websocket-host "192.168.1.141"}
                              :compiler {:main "milo.client.core"
                                         :asset-path "js"
                                         :closure-defines {milo.client.events/server "goose:8001"}
