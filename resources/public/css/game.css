@@ -1,3 +1,17 @@
+.no-margin {
+  margin: 0;
+}
+
+.no-spacing {
+  margin: 0;
+  padding: 0;
+}
+
+.spaced-text {
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
 .no-space {
     margin-top: 5px;
     margin-bottom: 5px;

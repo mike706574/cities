@@ -28,7 +28,7 @@
 
 (defn db
   []
-  (cljs.pprint/pprint @(rf/subscribe [:db])))
+  (cljs.pprint/pprint  @(rf/subscribe [:db])))
 
 (defn toaster!
   []
@@ -57,7 +57,6 @@
           :headers {"Player" player}
           :response-format (ajax/transit-response-format)
           :handler (fn [[ok? response]]
-                     (cljs.pprint/pprint response)
                      (go (>! ch (if ok?
                                   {:ok? true :state response}
                                   {:ok? false :response response}))))}))
@@ -71,7 +70,6 @@
     (go (let [state-chan (retrieve-state! player)
               ws-chan (websocket/connect! player)
               responses (<! (async/map vector [state-chan ws-chan]))]
-          (cljs.pprint/pprint responses)
           (if (every? :ok? responses)
             (do
               (let [state (:state (first

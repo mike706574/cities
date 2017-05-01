@@ -31,19 +31,16 @@
 
 (defn game-summary-for
   [player game]
-  (let [id (::game/id game)
-        opponent (game/opponent game player)]
+  (let [id (:milo.game/id game)
+        opponent (game/opponent game player)
+        base #:milo.game{:id id
+                         :opponent opponent
+                         :loaded? false}]
     (if (game/game-over? game)
-      {::game/id id
-       ::game/opponent opponent
-       ::game/loaded? false
-       ::game/over? true}
-      {::game/id id
-       ::game/opponent opponent
-       ::game/over? false
-       ::game/loaded? false
-       ::game/round-number (inc (count (::game/past-rounds game)))
-       ::game/turn (get-in game [::game/round ::game/turn])})))
+      (assoc base :milo.game/over? true)
+      (assoc base
+             :milo.game/round (select-keys (:milo.game/round game) [::game/turn])
+             :milo.game/round-number (inc (count (:milo.game/past-rounds game)))))))
 
 (defn playing?
   [player game]

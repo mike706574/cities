@@ -5,6 +5,7 @@
             [milo.menu :as menu]
             [milo.move :as move]
             [milo.player :as player]
+            [milo.client.macros :refer [guard-event]]
             [reagent.core :as r]
             [re-frame.core :as rf]
             [taoensso.timbre :as log])
@@ -19,8 +20,11 @@
       (str color " " number))))
 
 (defn move-sentence
-  [{:keys [:milo.player/id :milo.card/card :milo.move/destination :milo.move/source]}]
-  (str id " "
+  [player {:keys [:milo.player/id :milo.card/card :milo.move/destination :milo.move/source]}]
+  (str (if (= player id)
+         "You"
+         id)
+       " "
        (case destination
          :expedition "played"
          :discard-pile "discarded")
@@ -34,15 +38,39 @@
 
 (defn toast!
   [{toaster :toaster :as db} body]
-  (go (>! toaster body)))
+  (go (>! toaster body))
+  db)
 
 (defn screen-toast!
   [target {:keys [toaster screen] :as db} body]
   (when (or (not screen) (= screen target))
-    (go (>! toaster body))))
+    (go (>! toaster body)))
+  db)
 
 (def menu-toast! (partial screen-toast! :menu))
 (def game-toast! (partial screen-toast! :game))
+
+(defn- handle-turn-taken*
+  [{player :player current-game-id :game-id :as db} {:keys [:milo/status :milo.game/game :milo.move/move] :as event}]
+  (println "Handling turn taken!!!")
+  (guard-event db event
+    (let [game-id (:milo.game/id game)]
+      (if-not (= game-id current-game-id)
+        (assoc-in db [:active-games game-id] game)
+        (let [screen (case status
+                       :taken :game
+                       :round-over :round-over
+                       :game-over :game-over)
+              message (move-sentence player move)]
+          (println "Status is " status "... going to screen" screen)
+          (game-toast! db {:message message})
+          (-> db
+              (assoc-in [:active-games game-id] game)
+              (dissoc :move-message)
+              (assoc :screen screen
+                     :status-message message
+                     :destination :expedition
+                     :source :draw-pile)))))))
 
 (defmulti handle-message
   (fn [db message]
@@ -54,84 +82,71 @@
   (assoc db :screen :error :error-message :error-message))
 
 (defmethod handle-message :sent-invite
-  [{events :events :as db} {event-id :milo/event-id invite :milo/invite :as response}]
-  (if (contains? events event-id)
-    db
-    (let [recipient (second invite)
-          message (str "You invited " recipient " to play.")]
-      (menu-toast! db {:message message
-                       :action-label "Cancel"
-                       :action-event [:cancel-invite recipient]})
-      (-> db
-          (update :events conj event-id)
-          (update :messages conj message)
-          (update :sent-invites conj invite)))))
+  [db {invite :milo/invite :as event}]
+  (guard-event db event
+   (let [recipient (second invite)
+         message (str "You invited " recipient " to play.")]
+     (menu-toast! db {:message message
+                      :action-label "Cancel"
+                      :action-event [:cancel-invite recipient]})
+     (-> db
+         (update :messages conj message)
+         (update :sent-invites conj invite)))))
 
 (defmethod handle-message :received-invite
-  [{events :events :as db} {event-id :milo/event-id invite :milo/invite}]
-  (if (contains? events event-id)
-    db
+  [db {invite :milo/invite :as event}]
+  (guard-event db event
     (let [sender (first invite)
           message (str sender " invited you to play.")]
       (menu-toast! db {:message message
                        :action-label "Accept"
                        :action-event [:accept-invite sender]})
       (-> db
-          (update :events conj event-id)
           (update :received-invites conj invite)
           (update :messages conj message)))))
 
 
 (defmethod handle-message :sent-invite-rejected
-  [{events :events :as db} {event-id :milo/event-id invite :milo/invite}]
+  [db {invite :milo/invite :as event}]
   (log/debug "Sent invite rejected:" invite)
-  (if (contains? events event-id)
-    db
+  (guard-event db event
     (let [message (str (second invite) " rejected your invite")]
       (menu-toast! db {:message message})
       (-> db
-          (update :events conj event-id)
           (update :sent-invites disj invite)
           (update :messages conj message)))))
 
 (defmethod handle-message :sent-invite-canceled
-  [{events :events toaster :toaster :as db} {event-id :milo/event-id invite :milo/invite}]
+  [db {invite :milo/invite :as event}]
   (log/debug "Sent invite canceled:" invite)
-  (if (contains? events event-id)
-    db
-    (let [message (str "You uninvited " (second invite) ".")]
-      (menu-toast! db {:message message})
-      (-> db
-          (update :events conj event-id)
-          (update :sent-invites disj invite)
-          (update :messages conj message)))))
+  (guard-event db event
+   (let [message (str "You uninvited " (second invite) ".")]
+     (menu-toast! db {:message message})
+     (-> db
+         (update :sent-invites disj invite)
+         (update :messages conj message)))))
 
 (defmethod handle-message :received-invite-canceled
-  [{events :events :as db} {event-id :milo/event-id invite :milo/invite}]
+  [db {event-id :milo/event-id invite :milo/invite :as event}]
   (log/debug "Received invite canceled:" invite)
-  (if (contains? events event-id)
-    db
+  (guard-event db event
     (-> db
-        (update :events conj event-id)
         (update :received-invites disj invite)
         (update :messages conj (str (first invite) " canceled your invite!")))))
 
 (defmethod handle-message :received-invite-rejected
-  [{events :events :as db} {event-id :milo/event-id invite :milo/invite}]
+  [db {invite :milo/invite :as event}]
   (log/debug "Received invite rejected:" invite)
-  (if (contains? events event-id)
-    db
+  (guard-event db event
     (let [message (str "You rejected "(first invite) "'s invite!")]
       (menu-toast! db {:message message})
       (-> db
-          (update :events conj event-id)
           (update :received-invites disj invite)
           (update :messages conj message)))))
 
 (defmethod handle-message :game-created
-  [{player :player events :events :as db} {:keys [:milo/event-id :milo.game/game :milo/invite]}]
-  (if (contains? events event-id)
-    db
+  [{player :player :as db} {:keys [:milo.game/game :milo/invite] :as event}]
+  (guard-event db event
     (let [{:keys [:milo.game/id :milo.game/opponent :milo.game/turn :milo.game/round-number]} game
           message (str "Game started against " opponent ".")
           invites (if (= player (first invite)) :sent-invites :received-invites)]
@@ -140,40 +155,13 @@
                        :action-label "Play"
                        :action-event [:play-game id]})
       (-> db
-          (update :events conj event-id)
           (update :active-games assoc id game)
           (update invites disj invite)
           (update :messages conj message)))))
 
-(defmethod handle-message :taken
-  [{:keys [events game-id] :as db} {:keys [:milo/event-id :milo.game/game :milo.move/move]}]
-  (if (contains? events event-id)
-    db
-    (let [message (move-sentence move)]
-      (game-toast! db {:message message})
-      (-> db
-          (assoc-in [:active-games game-id] game)
-          (assoc :status-message message)))))
-
-(defmethod handle-message :round-over
-  [{:keys [events game-id] :as db} {:keys [:milo/event-id :milo.game/game :milo.move/move]}]
-  (if (contains? events event-id)
-    db
-    (let [message (move-sentence move)]
-      (game-toast! db {:message message})
-      (-> db
-          (assoc :screen :round-over :status-message message)
-          (assoc-in [:active-games game-id] game)))))
-
-(defmethod handle-message :game-over
-  [{:keys [events game-id] :as db} {:keys [:milo/event-id :milo.game/game :milo.move/move]}]
-  (if (contains? events event-id)
-    db
-    (let [message (move-sentence move)]
-      (game-toast! db {:message message})
-      (-> db
-          (assoc :screen :game-over :status-message message)
-          (assoc-in [:active-games game-id] game)))))
+(defmethod handle-message :taken [db event] (handle-turn-taken* db event))
+(defmethod handle-message :round-over [db event] (handle-turn-taken* db event))
+(defmethod handle-message :game-over [db event] (handle-turn-taken* db event))
 
 (defn show-menu
   [db _]
@@ -256,7 +244,13 @@
                   :format (ajax/transit-request-format)
                   :response-format (ajax/transit-response-format)
                   :on-success [:invite-sent]
-                  :on-failure [:generic-error]}}))
+                  :on-failure [:failed-to-send-invite]}}))
+
+(defn send-invite-failure
+  [db [_ {status :status response :response :as failure}]]
+  (if (= status 409)
+    (menu-toast! db {:message (:milo.server/message response)})
+    (assoc db :screen :error :error-message (str response))))
 
 (defn cancel-invite
   [{db :db} [_ opponent]]
@@ -300,27 +294,9 @@
 
 (defn handle-turn-taken
   [db [_ response]]
-  (let [{status :milo/status game :milo.game/game} response]
-    (if (= status :game-over)
-      (merge db {:game game
-                 :screen :game-over
-                 :status-message "You took a turn and ended the game."})
-      (let [screen (case status
-                     :round-over :round-over
-                     :taken :game)
-            status-message (case status
-                             :round-over "You took a turn and ended the round."
-                             :taken "You took a turn.")]
-        (-> db
-            (dissoc :move-message)
-            (merge {:game game
-                    :screen screen
-                    :status-message status-message
-                    :card nil
-                    :destination :expedition
-                    :source :draw-pile}))))))
+  (handle-turn-taken* db response))
 
-(defn handle-turn-rejection
+(defn handle-turn-failure
   [db [_ {status :status response :response :as failure}]]
   (if-not (= status 409)
     (assoc db :screen :error :error-message (str response))
@@ -336,9 +312,10 @@
 
 (defn handle-generic-error
   [db [_ body]]
-  (merge db {:screen :error
-             :error-message "Generic error."
-             :error-body (with-out-str (cljs.pprint/pprint body))}))
+  (assoc db
+         :screen :error
+         :error-message "Generic error."
+         :error-body (with-out-str (cljs.pprint/pprint body))))
 
 (rf/reg-event-db
  :message
@@ -353,11 +330,13 @@
           active-games :milo/active-games
           sent-invites :milo/sent-invites
           received-invites :milo/received-invites} state]
+     (println "Initialized!")
      {:screen :menu
       :socket nil
       :player player
       :status-message "Initialized."
-      :events #{}
+      :events {}
+      :game-id nil
       :active-games active-games
       :sent-invites sent-invites
       :received-invites received-invites
@@ -375,8 +354,16 @@
 (rf/reg-event-db :generic-error handle-generic-error)
 
 (rf/reg-event-fx :send-invite send-invite)
-
 (rf/reg-event-db :invite-sent handle-message-response)
+(rf/reg-event-db
+ :failed-to-send-invite
+ (fn
+   [db [_ {status :status response :response :as failure}]]
+   (if (= status 409)
+     (menu-toast! db {:message (:milo.server/message response)
+                      :error? true})
+     (assoc db :screen :error :error-message (str response)))))
+
 (rf/reg-event-fx :cancel-invite cancel-invite)
 (rf/reg-event-fx :reject-invite reject-invite)
 (rf/reg-event-db :deleted-invite handle-message-response)
@@ -391,7 +378,7 @@
 
 (rf/reg-event-fx :take-turn take-turn)
 (rf/reg-event-db :turn-taken handle-turn-taken)
-(rf/reg-event-db :turn-rejected handle-turn-rejection)
+(rf/reg-event-db :turn-rejected handle-turn-failure)
 
 (rf/reg-event-db
  :back-to-game
@@ -429,6 +416,7 @@
  :toast
  (fn [db [_ toast]]
    (log/debug (str "Changing toast to " toast))
+   (println "DB:" db)
    (assoc db :toast toast)))
 
 (rf/reg-event-db

@@ -13,3 +13,8 @@ pom.xml
 .lein-env
 .nrepl-port
 .lein-repl-history
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

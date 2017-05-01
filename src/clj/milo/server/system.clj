@@ -17,7 +17,9 @@
                     :roles #{:milo/user}}
             "abby" {:username "abby"
                     :password (creds/hash-bcrypt "abby")
-                    :roles #{:milo/user}}})
+                    :roles #{:milo/user}}
+            "guest" {:username "guest"
+                     :password (creds/hash-bcrypt "guest")}})
 
 (derive :milo/admin :milo/user)
 

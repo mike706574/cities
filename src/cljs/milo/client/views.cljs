@@ -18,9 +18,6 @@
     :on-click  on-click}
    label])
 
-(defn back-button []
-  (button "Back" #(rf/dispatch [:show-menu])))
-
 (defn active-hand-view
   [hand]
   (let [selected-card @(rf/subscribe [:card])]
@@ -39,17 +36,19 @@
       hand)]))
 
 (defn inline-cards
-  [hand]
-  [:ul.no-space
-   (map-indexed
-    (fn [index card]
-      [:li
-       {:key index
-        :style {"display" "inline"}}
-       [:span
-        {:class (name (::card/color card))}
-        (card/str-card card)]])
-    hand)])
+  [cards]
+  (if (empty? cards)
+    [:p.no-spacing "None."]
+    [:ul.no-space
+     (map-indexed
+      (fn [index card]
+        [:li
+         {:key index
+          :style {"display" "inline"}}
+         [:span
+          {:class (name (::card/color card))}
+          (card/str-card card)]])
+      cards)]))
 
 (defn stack-table
   [stacks show-scores?]
@@ -137,27 +136,26 @@
         opponent-expeditions @(rf/subscribe [:opponent-expeditions])
         turn? (= player turn)]
     [:div
-     [back-button]
-     [:h3 (str "Round " round-number " versus " opponent)]
-     [:p (str "There are " draw-count " cards left. It's " (if turn? "your" (str opponent "'s")) " turn. ")]
+     [:h5.no-spacing (str "Round " round-number " versus " opponent)]
+     [:p.spaced-text (str "There are " draw-count " cards left. It's " (if turn? "your" (str opponent "'s")) " turn. ")]
      (if turn?
        [:div
-        [:h5 "Hand"]
+        [:h5.no-spacing "Hand"]
         (active-hand-view hand)
-        [:h5 "Destination"]
+        [:h5.no-spacing "Destination"]
         [destination-view]
-        [:h5 "Sources"]
+        [:h5.no-spacing "Sources"]
         [source-view available-discards]
         (button (str "Take Turn") #(rf/dispatch [:take-turn]))
         (when move-message [:p.red-text move-message])]
        [:div
-        [:h5 "Hand"]
+        [:h5.no-spacing "Hand"]
         (inline-cards hand)
-        [:h5 "Discards"]
+        [:h5.no-spacing "Discards"]
         (inline-cards available-discards)])
-     [:h5 "Your Expeditions"]
+     [:h5.no-spacing "Your Expeditions"]
      (expedition-table expeditions)
-     [:h5 (str opponent "'s Expeditions")]
+     [:h5.no-spacing (str opponent "'s Expeditions")]
      (expedition-table opponent-expeditions)]))
 
 (defn expedition-score-tables
@@ -180,7 +178,6 @@
         player-score (reduce + (map #(get % player) round-scores))
         opponent-score (reduce + (map #(get % opponent) round-scores))]
     [:div
-     [back-button]
      [:h3 "Game Over"]
      [:table
       [:thead [:tr [:th player] [:th opponent]]]
@@ -205,19 +202,9 @@
         opponent @(rf/subscribe [:opponent])
         round @(rf/subscribe [:last-round])]
     [:div
-     [back-button]
      [:h3 "Round Over"]
      [button "Play" #(rf/dispatch [:back-to-game])]
      (expedition-score-tables round player opponent)]))
-
-(defn splash
-  []
-  [:div.demo-layout.mdl-layout.mdl-js-layout
-   {:style {"alignItems" "center"}}
-   [:main.mdl-layout__content
-    [:p @(rf/subscribe [:status-message])]]]
-  )
-
 
 (defn received-invites []
   (let [invites @(rf/subscribe [:received-invites])]
@@ -230,10 +217,10 @@
                [:span.mdl-list__item-secondary-content
                 (button "Reject" #(rf/dispatch [:reject-invite (first invite)]))]])]
       [:div
-       [:h5 {:style {"margin" "0"}} "Received Invites"]
+       [:h5.no-margin "Received Invites"]
        (if (empty? invites)
-         [:p {:style {"marginTop" "1em" "marginBottom" "1em"} } "You haven't received any invites."]
-         [:ul.demo-list-item.mdl-list
+         [:p.spaced-text "You haven't received any invites."]
+         [:ul.mdl-list.no-spacing
           (map-indexed list-item invites)])])))
 
 (defn game-list
@@ -247,22 +234,24 @@
                 opponent]
                [:span.mdl-list__item-secondary-action
                 (button "Play" #(rf/dispatch [:play-game id]))]]))]
-    [:ul.demo-list-control.mdl-list
+    [:ul.mdl-list.no-spacing
      (map game-item games)]))
 
 (defn ready-games []
   (let [games @(rf/subscribe [:ready-games])]
-    (when-not (empty? games)
-      [:div
-       [:h5 "Your turn"]
-       (game-list games)])))
+    [:div
+     [:h5.no-margin "Your turn"]
+     (if (empty? games)
+       [:p.spaced-text "No games found."]
+       (game-list games))]))
 
 (defn waiting-games []
   (let [games @(rf/subscribe [:waiting-games])]
-    (when-not (empty? games)
-      [:div
-       [:h5 "Their turn"]
-       (game-list games)])))
+    [:div
+     [:h5.no-margin"Their turn"]
+     (if (empty? games)
+       [:p.spaced-text"No games found."]
+       (game-list games))]))
 
 (defn toast []
   (if-let [{:keys [message action-event action-label color]} @(rf/subscribe [:toast])]
@@ -288,8 +277,8 @@
                [:span.mdl-list__item-secondary-content
                 (button "Cancel" #(rf/dispatch [:cancel-invite (second invite)]))]])]
       (if (empty? invites)
-        [:p {:style {"marginTop" "1em" "marginBottom" "1em"} } "You haven't sent any invites."]
-        [:ul.demo-list-item.mdl-list
+        [:p.spaced-text "You haven't sent any invites."]
+        [:ul.mdl-list.no-spacing
          (map-indexed list-item invites)]))))
 
 (defn invite-form []
@@ -335,14 +324,13 @@
 (defn outbox
   []
   [:div
-   [:h5 {:style {"margin" "0"}} "Sent invites"]
+   [:h5.no-margin "Sent invites"]
    [invite-form]
    [sent-invites]])
 
 (defn error []
   (let [{:keys [error-message error-body]} @(rf/subscribe [:error])]
   [:div
-   [back-button]
    [:h5 "Error!"]
    [:p error-message]
    [:textarea {:rows "10" :cols "100"} error-body]]))
@@ -367,10 +355,16 @@
        :children
        [[mdl/layout-header-row
          :children
-         [[mdl/layout-title :label app-title]]]]]
+         [[mdl/layout-title
+           :children [[:a {:style {"cursor" "pointer"
+                                   "color" "white"}
+                           :on-click #(rf/dispatch [:show-menu])}
+                       app-title]]]]]]]
       [mdl/layout-drawer
        :children
-       [[mdl/layout-title :label app-title]]]
+       [[mdl/layout-title
+         :label app-title
+         :attr {:on-click #(rf/dispatch [:show-menu])}]]]
       [mdl/layout-content
        :attr {:style {:background "white"}}
        :children [[:div.mdl-layout__conent
@@ -380,14 +374,14 @@
 
 (defn app []
   (let [screen @(rf/subscribe [:screen])]
-    (case screen
-      :splash [splash]
-      :game [container [game]]
-      :round-over [round-over]
-      :game-over [game-over]
-      :menu [container [menu]]
-      :error [container [error]]
-      (throw (js/Error. (str "Invalid screen: " screen))))))
+    [container
+     [(case screen
+        :game game
+        :round-over round-over
+        :game-over game-over
+        :menu menu
+        :error error
+        (throw (js/Error. (str "Invalid screen: " screen))))]]))
 
 (defn initialization-error
   [body]

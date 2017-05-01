@@ -23,15 +23,19 @@
  (fn [db _]
    (:status-message db)))
 
+(defn my-turn?
+  [player [_ game]]
+  (= player (-> game :milo.game/round :milo.game/turn)))
+
 (rf/reg-sub
  :ready-games
  (fn [{:keys [:player :active-games]} _]
-   (filter #(= (:milo.game/turn %) player) active-games)))
+   (filter (partial my-turn? player) active-games)))
 
 (rf/reg-sub
  :waiting-games
  (fn [{:keys [:player :active-games]} _]
-   (filter #(not= (:milo.game/turn %) player) active-games)))
+   (filter (partial (complement my-turn?) player) active-games)))
 
 (rf/reg-sub
  :completed-games

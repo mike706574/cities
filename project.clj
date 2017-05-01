@@ -41,9 +41,16 @@
 
                  [day8.re-frame/http-fx "0.1.3"]
                  [cljs-ajax "0.5.9"]]
-  :source-paths ["src/clj" "src/cljc" "dev"]
+  :source-paths ["src/clj" "src/cljc"]
   :test-paths ["test/clj"]
+  :aws {:beanstalk {:environments [{:name "blue"
+                                    :cname-prefix "misplaced-villages"}
+                                   {:name "green"
+                                    :cname-prefix "misplaced-villages"}
+                                   {:name "dev"
+                                    :cname-prefix "misplaced-villages"}]}}
   :plugins [[com.palletops/uberimage "0.4.1"]
+            [juxt/lein-dockerstalk "0.1.0"]
             [lein-cljsbuild "1.1.5"]
             [cider/cider-nrepl "0.14.0"]
             [org.clojure/tools.nrepl "0.2.12"]

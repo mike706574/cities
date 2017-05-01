@@ -17,7 +17,6 @@
 
 (defn handle
   [{:keys [games invites player-bus conn-manager] :as deps} req]
-  (println "FOOF")
   (d/let-flow [conn (d/catch
                         (http/websocket-connection req)
                         (constantly nil))]
