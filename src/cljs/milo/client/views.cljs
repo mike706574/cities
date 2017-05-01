@@ -231,7 +231,7 @@
                {:key id}
                [:span.mdl-list__item-primary-content
                 [:i.material-icons.mdl-list__item-avatar "person"]
-                opponent]
+                (str opponent " [" id "]")]
                [:span.mdl-list__item-secondary-action
                 (button "Play" #(rf/dispatch [:play-game id]))]]))]
     [:ul.mdl-list.no-spacing
