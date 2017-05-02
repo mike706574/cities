@@ -3,36 +3,12 @@
             [clojure.string :as str]
             [milo.game :as game]
             [milo.player :as player]
-            [milo.client.macros :refer [guard-event]]
+            [milo.client.misc :refer [pretty]]
             [reagent.core :as r]
             [re-frame.core :as rf]
             [taoensso.timbre :as log])
-  (:require-macros [cljs.core.async.macros :refer [go]]))
-
-;; TODO: Move to milo.
-(defn card-description
-  [{:keys [:milo.card/color :milo.card/type :milo.card/number]}]
-  (let [color (-> color name str/capitalize)]
-    (if (= type :wager)
-      (str "a " color " wager card")
-      (str color " " number))))
-
-(defn move-sentence
-  [player {:keys [:milo.player/id :milo.card/card :milo.game/destination :milo.game/source]}]
-  (str (if (= player id)
-         "You"
-         id)
-       " "
-       (case destination
-         :expedition "played"
-         :discard-pile "discarded")
-       " "
-       (card-description card)
-       " and drew "
-       (if (= :draw-pile source)
-         "a new card."
-         (str "from the " (-> source name str/capitalize) " discard pile."))))
-;; END
+  (:require-macros [cljs.core.async.macros :refer [go]]
+                   [milo.client.macros :refer [guard-event]]))
 
 (defn toast!
   [{toaster :toaster :as db} body]
@@ -59,7 +35,7 @@
                        :taken :game
                        :round-over :round-over
                        :game-over :game-over)
-              message (move-sentence player move)]
+              message (game/move-sentence player move)]
           (println "Status is " status "... going to screen" screen)
           (game-toast! db {:message message})
           (-> db
@@ -81,15 +57,16 @@
 
 (defmethod handle-message :sent-invite
   [db {invite :milo/invite :as event}]
+  (log/debug "Handling message :sent-invite")
   (guard-event db event
-   (let [recipient (second invite)
-         message (str "You invited " recipient " to play.")]
-     (menu-toast! db {:message message
-                      :action-label "Cancel"
-                      :action-event [:cancel-invite recipient]})
-     (-> db
-         (update :messages conj message)
-         (update :sent-invites conj invite)))))
+               (let [recipient (second invite)
+                     message (str "You invited " recipient " to play.")]
+                 (menu-toast! db {:message message
+                                  :action-label "Cancel"
+                                  :action-event [:cancel-invite recipient]})
+                 (-> db
+                     (update :messages conj message)
+                     (update :sent-invites conj invite)))))
 
 (defmethod handle-message :received-invite
   [db {invite :milo/invite :as event}]
@@ -118,11 +95,11 @@
   [db {invite :milo/invite :as event}]
   (log/debug "Sent invite canceled:" invite)
   (guard-event db event
-   (let [message (str "You uninvited " (second invite) ".")]
-     (menu-toast! db {:message message})
-     (-> db
-         (update :sent-invites disj invite)
-         (update :messages conj message)))))
+               (let [message (str "You uninvited " (second invite) ".")]
+                 (menu-toast! db {:message message})
+                 (-> db
+                     (update :sent-invites disj invite)
+                     (update :messages conj message)))))
 
 (defmethod handle-message :received-invite-canceled
   [db {event-id :milo/event-id invite :milo/invite :as event}]
@@ -313,7 +290,7 @@
   (assoc db
          :screen :error
          :error-message "Generic error."
-         :error-body (with-out-str (cljs.pprint/pprint body))))
+         :error-body (pretty body)))
 
 (rf/reg-event-db
  :message
@@ -414,7 +391,6 @@
  :toast
  (fn [db [_ toast]]
    (log/debug (str "Changing toast to " toast))
-   (println "DB:" db)
    (assoc db :toast toast)))
 
 (rf/reg-event-db

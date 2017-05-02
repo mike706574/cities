@@ -19,7 +19,7 @@
                  [environ "1.1.0"]
 
                  ;; Logging
-                 [com.taoensso/timbre "4.8.0"]
+                 [com.taoensso/timbre "4.10.0"]
 
                  ;; Web
                  [aleph "0.4.3"]
@@ -34,7 +34,7 @@
                  [org.clojure/clojurescript "1.9.521"]
                  [com.cognitect/transit-cljs "0.8.239"]
 
-                 [cljsjs/react-with-addons "15.4.2-2"]
+                 [cljsjs/react-with-addons "15.5.0-0"]
                  [com.yetanalytics/re-mdl "0.1.5"]
                  [reagent "0.6.1" :exclusions [cljsjs/react]]
                  [re-frame "0.9.2" :exclusions [cljsjs/react]]
@@ -60,7 +60,7 @@
                    :dependencies [[org.clojure/test.check "0.9.0"]
                                   [org.clojure/tools.namespace "0.2.11"]
                                   [com.cemerick/piggieback "0.2.1"]
-                                  [figwheel-sidecar "0.5.9"]]
+                                  [figwheel-sidecar "0.5.10"]]
                    :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}}
              :production {:aot :all
                           :main milo.server.main

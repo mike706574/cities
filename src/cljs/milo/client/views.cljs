@@ -7,6 +7,7 @@
             [milo.card :as card]
             [milo.player :as player]
             [milo.score :as score]
+            [milo.client.misc :refer [pretty]]
             [taoensso.timbre :as log]))
 
 (def app-title "Misplaced Villages")
@@ -32,7 +33,7 @@
                   :on-change #(rf/dispatch [:card-change card])}]
          [:span
           {:class (name (::card/color card))}
-          (card/str-card card)]])
+          (card/label card)]])
       hand)]))
 
 (defn inline-cards
@@ -47,7 +48,7 @@
           :style {"display" "inline"}}
          [:span
           {:class (name (::card/color card))}
-          (card/str-card card)]])
+          (card/label card)]])
       cards)]))
 
 (defn stack-table
@@ -61,7 +62,7 @@
             (if-let [card (get cards row)]
               [:td {:key color
                     :class (name color)}
-               (card/str-card card)]
+               (card/label card)]
               [:td {:key color} ""]))
           (tr [row]
             [:tr {:key row}
@@ -119,7 +120,7 @@
                     :on-change #(rf/dispatch [:source-change color])}]
            [:span
             {:class (name color)}
-            (card/str-card card)]]))
+            (card/label card)]]))
       available-discards)]))
 
 (defn game []
@@ -253,20 +254,22 @@
        [:p.spaced-text"No games found."]
        (game-list games))]))
 
-(defn toast []
-  (if-let [{:keys [message action-event action-label color]} @(rf/subscribe [:toast])]
-    [:div#toast.mdl-js-snackbar.mdl-snackbar.mdl-snackbar--active
-     {:aria-hidden "false"}
-     [:div.mdl-snackbar__text (or message "No message.")]
-     (when action-event
-       [:button.mdl-snackbar__action
-        {:type "button"
-         :on-click #(rf/dispatch action-event)}
-        (or action-label "Perform Action")])]
-    [:div#toast.mdl-js-snackbar.mdl-snackbar
-     {:class ""
-      :aria-hidden "true"}
-     [:div.mdl-snackbar__text ""]]))
+(defn toast [key]
+  (let [{:keys [message action-event action-label color :as toast]}  @(rf/subscribe [key])]
+    (log/debug (str "Displaying toast: " (pretty toast)))
+    (if toast
+      [:div#toast.mdl-js-snackbar.mdl-snackbar.mdl-snackbar--active
+       {:aria-hidden "false"}
+       [:div.mdl-snackbar__text (or message "No message.")]
+       (when action-event
+         [:button.mdl-snackbar__action
+          {:type "button"
+           :on-click #(rf/dispatch action-event)}
+          (or action-label "Perform Action")])]
+      [:div#toast.mdl-js-snackbar.mdl-snackbar
+       {:class ""
+        :aria-hidden "true"}
+       [:div.mdl-snackbar__text ""]])))
 
 (defn sent-invites []
   (let [invites @(rf/subscribe [:sent-invites])]
@@ -370,7 +373,7 @@
        :children [[:div.mdl-layout__conent
                    [:div.mdl-grid.demo-content
                     [:div.mdl-cell.mdl-cell--12-col body]]]
-                  [toast]]]]]]])
+                  [toast :toast]]]]]]])
 
 (defn app []
   (let [screen @(rf/subscribe [:screen])]
@@ -390,4 +393,4 @@
    [:textarea
     {:rows "100"
      :cols "100"
-     :value (with-out-str (cljs.pprint/pprint body))}]])
+     :value (pretty body)}]])
