@@ -54,7 +54,7 @@
             [lein-cljsbuild "1.1.5"]
             [cider/cider-nrepl "0.14.0"]
             [org.clojure/tools.nrepl "0.2.12"]
-            [lein-figwheel "0.5.9"]]
+            [lein-figwheel "0.5.10"]]
   :profiles {:dev {:source-paths ["dev"]
                    :target-path "target/dev"
                    :dependencies [[org.clojure/test.check "0.9.0"]
