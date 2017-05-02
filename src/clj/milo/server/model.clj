@@ -1,6 +1,5 @@
 (ns milo.server.model
   (:require [milo.game :as game]
-            [milo.menu :as menu]
             [milo.player :as player]))
 
 (defn divider

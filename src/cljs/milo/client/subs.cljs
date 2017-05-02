@@ -1,7 +1,6 @@
 (ns milo.client.subs
   (:require [re-frame.core :as rf]
-            [milo.game :as game]
-            [milo.menu :as menu]))
+            [milo.game :as game]))
 
 (rf/reg-sub
  :db

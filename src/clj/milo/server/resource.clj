@@ -8,8 +8,6 @@
             [manifold.bus :as bus]
             [milo.card :as card]
             [milo.game :as game]
-            [milo.menu :as menu]
-            [milo.move :as move]
             [milo.score :as score]
             [milo.player :as player]
             [milo.server.connection :as conn]
@@ -153,9 +151,9 @@
      (let [{status :milo.game/status
             game' :milo.game/game} (game/take-turn game move)]
        (if-not (turn-taken? status)
-         {:milo/status status :milo.move/move move :milo.game/id game-id}
+         {:milo/status status :milo.game/move move :milo.game/id game-id}
          (let [event (event/store event-manager {:milo/status status
-                                                 :milo.move/move move
+                                                 :milo.game/move move
                                                  :milo.game/id game-id
                                                  :milo.game/game game'})]
            (alter games (fn [games] (assoc games game-id game')))
@@ -164,7 +162,7 @@
 (defn handle-turn
   [{:keys [player-bus] :as deps} request]
   (handle-exceptions request
-    (with-body [move :milo.move/move request]
+    (with-body [move :milo.game/move request]
       (let [{{game-id :id} :params
              {player "player"} :headers} request]
         (if-not (= player (:milo.player/id move))
@@ -182,7 +180,7 @@
               :else (body-response 409 request {:milo/status :turn-not-taken
                                                 :milo.game/id game-id
                                                 :milo.game/status status
-                                                :milo.move/move move}))))))))
+                                                :milo.game/move move}))))))))
 
 (defn handle-game-retrieval
   [{:keys [games] :as deps} request]

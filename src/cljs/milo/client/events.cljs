@@ -2,8 +2,6 @@
   (:require [ajax.core :as ajax]
             [clojure.string :as str]
             [milo.game :as game]
-            [milo.menu :as menu]
-            [milo.move :as move]
             [milo.player :as player]
             [milo.client.macros :refer [guard-event]]
             [reagent.core :as r]
@@ -20,7 +18,7 @@
       (str color " " number))))
 
 (defn move-sentence
-  [player {:keys [:milo.player/id :milo.card/card :milo.move/destination :milo.move/source]}]
+  [player {:keys [:milo.player/id :milo.card/card :milo.game/destination :milo.game/source]}]
   (str (if (= player id)
          "You"
          id)
@@ -51,7 +49,7 @@
 (def game-toast! (partial screen-toast! :game))
 
 (defn- handle-turn-taken*
-  [{player :player current-game-id :game-id :as db} {:keys [:milo/status :milo.game/game :milo.move/move] :as event}]
+  [{player :player current-game-id :game-id :as db} {:keys [:milo/status :milo.game/game :milo.game/move] :as event}]
   (println "Handling turn taken!!!")
   (guard-event db event
     (let [game-id (:milo.game/id game)]
@@ -281,7 +279,7 @@
 (defn take-turn
   [{:keys [db]} _]
   (let [{:keys [:card :destination :source :player]} db
-        move (move/move player card destination source)
+        move (game/move player card destination source)
         uri (str "/api/game/" (:game-id db))]
     {:http-xhrio {:method :put
                   :uri uri

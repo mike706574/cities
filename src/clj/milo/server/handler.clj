@@ -9,7 +9,6 @@
             [com.stuartsierra.component :as component]
             [manifold.bus :as bus]
             [milo.game :as game]
-            [milo.move :as move]
             [milo.card :as card]
             [milo.player :as player]
             [milo.server.resource :as resource]

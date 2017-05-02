@@ -21,7 +21,6 @@
    [manifold.bus :as bus]
    [milo.card :as card]
    [milo.game :as game]
-   [milo.move :as move]
    [milo.player :as player]
    [milo.server.system :as system]
    [milo.server.message :as message]
