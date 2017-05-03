@@ -254,9 +254,8 @@
        [:p.spaced-text"No games found."]
        (game-list games))]))
 
-(defn toast [key]
-  (let [{:keys [message action-event action-label color :as toast]}  @(rf/subscribe [key])]
-    (log/debug (str "Displaying toast: " (pretty toast)))
+(defn toast []
+  (let [{:keys [message action-event action-label color] :as toast}  @(rf/subscribe [:toast])]
     (if toast
       [:div#toast.mdl-js-snackbar.mdl-snackbar.mdl-snackbar--active
        {:aria-hidden "false"}
@@ -373,7 +372,7 @@
        :children [[:div.mdl-layout__conent
                    [:div.mdl-grid.demo-content
                     [:div.mdl-cell.mdl-cell--12-col body]]]
-                  [toast :toast]]]]]]])
+                  [toast]]]]]]])
 
 (defn app []
   (let [screen @(rf/subscribe [:screen])]

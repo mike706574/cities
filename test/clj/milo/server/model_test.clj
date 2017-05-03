@@ -35,19 +35,20 @@
 
 (def deck-1 (concat first-8 second-8 last-4))
 
-(def test-game (game/game ["mike" "abby"] [deck-1 deck-1 deck-1] 4))
+(def test-game (-> (game/game ["mike" "abby"] [deck-1 deck-1 deck-1] 4)
+                   (assoc :milo.game/id 1)))
 
-(deftest menu-game
-  (is (= [{} {"1" #:milo.game{:id nil,
-                              :opponent "abby",
-                              :over? false,
-                              :loaded? false,
-                              :round-number 1,
-                              :turn "mike"}}]
-         (model/game-summaries-for "mike" {"1" test-game}))))
+(deftest summarize-game-for
+  (is (= #:milo.game{:id 1,
+                     :opponent "abby",
+                     :over? false,
+                     :loaded? false,
+                     :round-number 1,
+                     :round {:milo.game/turn "mike"}}
+         (model/summarize-game-for "mike" test-game))))
 
 (deftest one-game
   (is (= [#{["mike" "abby"]}
           #{["bob" "mike"]}]
-         (model/invites-for "mike" #{["mike" "abby"]
-                                     ["bob" "mike"]}))))
+         (model/separate-invites-by-direction "mike" #{["mike" "abby"]
+                                                       ["bob" "mike"]}))))

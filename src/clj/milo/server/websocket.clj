@@ -4,7 +4,6 @@
             [manifold.deferred :as d]
             [manifold.bus :as bus]
             [milo.server.connection :as conn]
-            [milo.server.event :as event]
             [milo.server.message :refer [encode decode]]
             [milo.server.model :as model]
             [taoensso.timbre :as log]))

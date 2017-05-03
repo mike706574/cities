@@ -335,8 +335,10 @@
  (fn
    [db [_ {status :status response :response :as failure}]]
    (if (= status 409)
-     (menu-toast! db {:message (:milo.server/message response)
-                      :error? true})
+     ;; TODO
+     (do (println response)
+       (menu-toast! db {:message (:milo.server/message response)
+                        :error? true}))
      (assoc db :screen :error :error-message (str response)))))
 
 (rf/reg-event-fx :cancel-invite cancel-invite)
@@ -390,11 +392,9 @@
 (rf/reg-event-db
  :toast
  (fn [db [_ toast]]
-   (log/debug (str "Changing toast to " toast))
    (assoc db :toast toast)))
 
 (rf/reg-event-db
  :untoast
  (fn [db [_ toast]]
-   (log/debug (str "Untoasting" toast))
    (dissoc db :toast)))

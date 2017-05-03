@@ -1,4 +1,4 @@
-(ns milo.server.event
+(ns milo.api.event
   (:require [com.stuartsierra.component :as component]
             [manifold.stream :as s]
             [milo.server.util :as util]

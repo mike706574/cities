@@ -2,14 +2,6 @@
   (:require [milo.game :as game]
             [milo.player :as player]))
 
-(defn divider
-  [f]
-  (fn divide
-    ([] (vector (list) (list)))
-    ([out] out)
-    ([out x]
-     (update out (if (f x) 0 1) conj x))))
-
 (defn game-for
   [player game]
   (if (game/game-over? game)
@@ -28,7 +20,7 @@
                     (assoc ::game/draw-count (count draw-pile)))]
       (assoc game ::game/round round ::game/opponent opponent))))
 
-(defn game-summary-for
+(defn summarize-game-for
   [player game]
   (let [id (:milo.game/id game)
         opponent (game/opponent game player)
@@ -38,42 +30,22 @@
     (if (game/game-over? game)
       (assoc base :milo.game/over? true)
       (assoc base
+             :milo.game/over? false
              :milo.game/round (select-keys (:milo.game/round game) [::game/turn])
              :milo.game/round-number (inc (count (:milo.game/past-rounds game)))))))
 
-(defn playing?
-  [player game]
-  (some #{player} (::game/players game)))
+(defn separate-games-by-status
+  [games]
+  (loop [[head & tail] games
+         out [{} {}]]
+    (if head
+      (update out (if (game/game-over? head) 0 1) assoc head)
+      out)))
 
-(defn invites-for
+(defn separate-invites-by-direction
   [player invites]
   (loop [[head & tail] invites
          out [#{} #{}]]
     (if head
-      (if (some #{player} head)
-        (recur tail (update out (if (= (first head) player) 0 1) conj head))
-        (recur tail out))
+      (recur tail (update out (if (= (first head) player) 0 1) conj head))
       out)))
-
-(defn game-summaries-for
-  [player games]
-  (let [playing? (fn [[id game]]
-                   (playing? player game))
-        game-summary-for (fn [[id game]] [id (game-summary-for player game)])
-        xform (comp (filter playing?)
-                    (map game-summary-for))
-        divide (divider (fn [[id game]]
-                          (::game/over? game)))]
-    (map #(into {} %) (transduce xform divide games))))
-
-(defn menu-for
-  [player games invites]
-  (let [[completed-games
-         active-games] (game-summaries-for player games)
-        [sent-invites
-         received-invites] (invites-for player invites)]
-    {:milo.player/id player
-     :milo/completed-games completed-games
-     :milo/active-games active-games
-     :milo/sent-invites sent-invites
-     :milo/received-invites received-invites}))
