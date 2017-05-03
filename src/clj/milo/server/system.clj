@@ -39,7 +39,9 @@
 
    :connections (atom {})
    :events (ref {})
-   :games (ref {})
+   :active-games (ref {})
+   :completed-games (ref {})
+
    :invites (ref #{})
    :users users
 

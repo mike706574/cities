@@ -33,19 +33,3 @@
              :milo.game/over? false
              :milo.game/round (select-keys (:milo.game/round game) [::game/turn])
              :milo.game/round-number (inc (count (:milo.game/past-rounds game)))))))
-
-(defn separate-games-by-status
-  [games]
-  (loop [[head & tail] games
-         out [{} {}]]
-    (if head
-      (update out (if (game/game-over? head) 0 1) assoc head)
-      out)))
-
-(defn separate-invites-by-direction
-  [player invites]
-  (loop [[head & tail] invites
-         out [#{} #{}]]
-    (if head
-      (recur tail (update out (if (= (first head) player) 0 1) conj head))
-      out)))

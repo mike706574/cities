@@ -2,7 +2,7 @@
   (:require [cognitect.transit :as transit]
             [clojure.edn :as edn]
             [clojure.set :as set]
-            [clojure.spec :as spec]
+            [clojure.spec.alpha :as spec]
             [taoensso.timbre :as log]))
 
 (def supported-media-types #{"application/edn"

@@ -3,7 +3,7 @@
             [cemerick.friend.credentials :as creds]
             [cemerick.friend.workflows :as workflows]
             [clojure.string :as str]
-            [clojure.spec :as spec]
+            [clojure.spec.alpha :as spec]
             [compojure.core :as compojure :refer [ANY DELETE GET POST PUT]]
             [compojure.route :as route]
             [com.stuartsierra.component :as component]

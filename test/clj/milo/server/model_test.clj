@@ -46,9 +46,3 @@
                      :round-number 1,
                      :round {:milo.game/turn "mike"}}
          (model/summarize-game-for "mike" test-game))))
-
-(deftest one-game
-  (is (= [#{["mike" "abby"]}
-          #{["bob" "mike"]}]
-         (model/separate-invites-by-direction "mike" #{["mike" "abby"]
-                                                       ["bob" "mike"]}))))

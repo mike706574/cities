@@ -44,12 +44,12 @@
 (rf/reg-sub
  :received-invites
  (fn [db _]
-   (:received-invites db)))
+   (filter #(= (second %) player) invites)))
 
 (rf/reg-sub
  :sent-invites
- (fn [db _]
-   (:sent-invites db)))
+ (fn [{:keys [player sent-invites]} _]
+   (filter #(= (first %) player) invites)))
 
 (rf/reg-sub
  :messages

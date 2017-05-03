@@ -6,7 +6,7 @@
 (defprotocol GameManager
   "Manages games and invites."
   (game-for-id [this game-id])
-  (games-for-player [this player])
+  (active-games-for-player [this player])
   (take-turn [this game-id move]))
 
 (defn- invite-already-exists
@@ -30,18 +30,21 @@
           (let [~form temp#]
             ~else))))))
 
-(defrecord RefGameManager [games event-manager]
+(defrecord RefGameManager [active-games completed-games event-manager]
   GameManager
   (game-for-id [this game-id]
-    (get @games game-id))
+    (or (get @active-games game-id)
+        (get @completed-games game-id)))
 
-  (games-for-player [this player-id]
-    (into {} (filter #(some #{player-id} (::game/players (val %))) @games)))
+  (active-games-for-player [this player-id]
+    (filter #(some #{player-id} (::game/players (val %))) @active-games))
 
   (take-turn [this game-id move]
     (dosync
-     (if-not-let [game (get @games game-id)]
-       {:milo/status :game-not-found}
+     (if-not-let [game (get @active-games game-id)]
+       (if-let [game (get @completed-games game-id)]
+         {:milo/status :game-over}
+         {:milo/status :game-not-found})
        (let [{status :milo.game/status
               game' :milo.game/game} (game/take-turn game move)]
          (if-not (contains? #{:taken :round-over :game-over} status)
@@ -50,9 +53,12 @@
                                                    :milo.game/move move
                                                    :milo.game/id game-id
                                                    :milo.game/game game'})]
-             (alter games (fn [games] (assoc games game-id game')))
+             (if (= :status :game-over)
+               (do (alter active-games (fn [games] (dissoc games game-id)))
+                   (alter completed-games (fn [games] (assoc games game-id game'))))
+               (alter active-games (fn [games] (assoc games game-id game'))))
              event)))))))
 
 (defn manager []
   (component/using (map->RefGameManager {})
-    [:games :event-manager]))
+    [:active-games :event-manager]))

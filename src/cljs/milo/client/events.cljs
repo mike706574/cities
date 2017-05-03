@@ -66,7 +66,7 @@
                                   :action-event [:cancel-invite recipient]})
                  (-> db
                      (update :messages conj message)
-                     (update :sent-invites conj invite)))))
+                     (update :invites conj invite)))))
 
 (defmethod handle-message :received-invite
   [db {invite :milo/invite :as event}]
@@ -77,7 +77,7 @@
                        :action-label "Accept"
                        :action-event [:accept-invite sender]})
       (-> db
-          (update :received-invites conj invite)
+          (update :invites conj invite)
           (update :messages conj message)))))
 
 
@@ -88,7 +88,7 @@
     (let [message (str (second invite) " rejected your invite")]
       (menu-toast! db {:message message})
       (-> db
-          (update :sent-invites disj invite)
+          (update :invites disj invite)
           (update :messages conj message)))))
 
 (defmethod handle-message :sent-invite-canceled
@@ -98,7 +98,7 @@
                (let [message (str "You uninvited " (second invite) ".")]
                  (menu-toast! db {:message message})
                  (-> db
-                     (update :sent-invites disj invite)
+                     (update :invites disj invite)
                      (update :messages conj message)))))
 
 (defmethod handle-message :received-invite-canceled
@@ -106,7 +106,7 @@
   (log/debug "Received invite canceled:" invite)
   (guard-event db event
     (-> db
-        (update :received-invites disj invite)
+        (update :invites disj invite)
         (update :messages conj (str (first invite) " canceled your invite!")))))
 
 (defmethod handle-message :received-invite-rejected
@@ -116,22 +116,21 @@
     (let [message (str "You rejected "(first invite) "'s invite!")]
       (menu-toast! db {:message message})
       (-> db
-          (update :received-invites disj invite)
+          (update :invites disj invite)
           (update :messages conj message)))))
 
 (defmethod handle-message :game-created
   [{player :player :as db} {:keys [:milo.game/game :milo/invite] :as event}]
   (guard-event db event
     (let [{:keys [:milo.game/id :milo.game/opponent :milo.game/turn :milo.game/round-number]} game
-          message (str "Game started against " opponent ".")
-          invites (if (= player (first invite)) :sent-invites :received-invites)]
+          message (str "Game started against " opponent ".")]
       (log/debug (str "Created game " id "."))
       (menu-toast! db {:message message
                        :action-label "Play"
                        :action-event [:play-game id]})
       (-> db
           (update :active-games assoc id game)
-          (update invites disj invite)
+          (update :invites disj invite)
           (update :messages conj message)))))
 
 (defmethod handle-message :taken [db event] (handle-turn-taken* db event))
@@ -303,8 +302,7 @@
    (let [toaster (:toaster system)
          {player :milo.player/id
           active-games :milo/active-games
-          sent-invites :milo/sent-invites
-          received-invites :milo/received-invites} state]
+          invites :milo/invitse} state]
      (println "Initialized!")
      {:screen :menu
       :socket nil
@@ -313,8 +311,7 @@
       :events {}
       :game-id nil
       :active-games active-games
-      :sent-invites sent-invites
-      :received-invites received-invites
+      :invites invites
       :move-message nil
       :card nil
       :source nil

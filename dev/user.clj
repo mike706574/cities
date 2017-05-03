@@ -47,7 +47,7 @@
     (alter-var-root #'system component/start-system)
     :started
     (catch Exception ex
-      (log/error (.getCause ex) "Failed to start system.")
+      (log/error (or (.getCause ex) ex) "Failed to start system.")
       :failed)))
 
 (defn stop

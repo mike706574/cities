@@ -113,22 +113,23 @@
             (body-response 404 request {:milo/status :game-not-found
                                         :milo.game/id game-id}))))))
 
+(defn separate-invites-by-direction
+  [player invites]
+  (loop [[head & tail] invites
+         out [#{} #{}]]
+    (if head
+      (recur tail (update out (if (= (first head) player) 0 1) conj head))
+      out)))
+
 (defn handle-menu-retrieval
   [{:keys [game-manager invite-manager]} request]
   (handle-exceptions request
     (let [player (get-in request [:headers "player"])
-          [completed-games
-           active-games] (->> player
-                              (game-api/games-for-player game-manager)
-                              (util/map-vals (partial model/summarize-game-for player))
-                              (model/separate-games-by-status))
-          [sent-invites
-           received-invites] (->> player
-                                  (invite-api/invites-for-player invite-manager)
-                                  (model/separate-invites-by-direction player))
+          active-games (->> player
+                            (game-api/active-games-for-player game-manager)
+                            (util/map-vals (partial model/summarize-game-for player)))
+          invites (invite-api/invites-for-player player invite-manager)
           menu {:milo.player/id player
-                :milo/completed-games completed-games
                 :milo/active-games active-games
-                :milo/sent-invites sent-invites
-                :milo/received-invites received-invites}]
+                :milo/invites invites}]
       (body-response 200 request menu))))
