@@ -1,5 +1,5 @@
 (ns milo.api.invite
-  (:require [clojure.spec :as s]
+  (:require [clojure.spec.alpha :as s]
             [com.stuartsierra.component :as component]
             [milo.api.event :as event]
             [milo.game :as game]))
