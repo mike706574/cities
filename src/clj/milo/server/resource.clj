@@ -17,7 +17,7 @@
 (defn handle-sending-invite
   [{:keys [player-bus user-manager invite-manager]} request]
   (handle-exceptions request
-    (with-body [invite :milo.api.invite/invite request]
+    (with-body [invite :milo/invite request]
       (let [[sender recipient] invite
             player (get-in request [:headers "player"])]
         (cond
@@ -26,8 +26,8 @@
           (not (user-api/credentials user-manager recipient)) (body-response 409 request {:milo.server/message (str "Player " recipient " does not exist.")})
           :else
           (let [{status :milo/status event-id :milo/event-id :as response} (invite-api/send-invite invite-manager invite)]
-            (if (contains? #{:invite-already-sent :invite-already-received} status)
-              (body-response 409 request (assoc response :milo/invite invite))
+            (if-not (= status :sent-invite)
+              (body-response 409 request response)
               (do (log/debug (str "[#" event-id "] Sent invite " invite))
                   (bus/publish! player-bus sender response)
                   (bus/publish! player-bus recipient (assoc response :milo/status :received-invite))
@@ -128,7 +128,7 @@
           active-games (->> player
                             (game-api/active-games-for-player game-manager)
                             (util/map-vals (partial model/summarize-game-for player)))
-          invites (invite-api/invites-for-player player invite-manager)
+          invites (invite-api/invites-for-player invite-manager player)
           menu {:milo.player/id player
                 :milo/active-games active-games
                 :milo/invites invites}]

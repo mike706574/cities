@@ -26,7 +26,6 @@
    [milo.server.message :as message]
    [taoensso.timbre :as log]))
 
-
 (log/set-level! :trace)
 
 (def config {:id "milo-server" :port 8001})

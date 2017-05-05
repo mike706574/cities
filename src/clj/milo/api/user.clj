@@ -13,7 +13,6 @@
   (avatar [this username]
     (:avatar (get @users username))))
 
-(defn manager
-  []
+(defn manager []
   (component/using (map->AtomUserManager {})
     [:users]))

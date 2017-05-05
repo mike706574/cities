@@ -19,6 +19,49 @@
     :on-click  on-click}
    label])
 
+(defn active-hand-view-2
+  [hand]
+  (let [selected-card @(rf/subscribe [:card])]
+    [:div.hand.mdl-cell.mdl-cell--12-col
+     (map-indexed
+      (fn [index card]
+        (let [rank (if (card/wager? card)
+                     "W"
+                     (str (:milo.card/number card)))
+              num (inc index)
+              classes ["card"
+                       (name (:milo.card/color card))
+                       (str "rank-" rank)
+                       (str "card-" num)
+                       (if (= selected-card card) "selected-card" "idle")]]
+          [:div
+           {:key num
+            :class (str/join " " classes)
+            :on-click #(rf/dispatch [:card-change card])}
+           [:p rank]]))
+      hand)]))
+
+(defn idle-hand-view-2
+  [hand]
+  [:div.hand.mdl-cell.mdl-cell--12-col
+   (map-indexed
+    (fn [index card]
+      (let [rank (if (card/wager? card)
+                   "W"
+                   (str (:milo.card/number card)))
+            num (inc index)
+            classes ["card"
+                     (name (:milo.card/color card))
+                     (str "rank-" rank)
+                     (str "card-" num)
+                     "idle"]]
+        [:div
+         {:key num
+          :class (str/join " " classes)
+          :on-click #(rf/dispatch [:card-change card])}
+         [:p rank]]))
+    hand)])
+
 (defn active-hand-view
   [hand]
   (let [selected-card @(rf/subscribe [:card])]
@@ -142,7 +185,7 @@
      (if turn?
        [:div
         [:h5.no-spacing "Hand"]
-        (active-hand-view hand)
+        (active-hand-view-2 hand)
         [:h5.no-spacing "Destination"]
         [destination-view]
         [:h5.no-spacing "Sources"]
@@ -151,7 +194,7 @@
         (when move-message [:p.red-text move-message])]
        [:div
         [:h5.no-spacing "Hand"]
-        (inline-cards hand)
+        (idle-hand-view-2 hand)
         [:h5.no-spacing "Discards"]
         (inline-cards available-discards)])
      [:h5.no-spacing "Your Expeditions"]

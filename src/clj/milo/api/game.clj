@@ -1,7 +1,8 @@
 (ns milo.api.game
   (:require [com.stuartsierra.component :as component]
             [milo.api.event :as event]
-            [milo.game :as game]))
+            [milo.game :as game]
+            [taoensso.timbre :as log]))
 
 (defprotocol GameManager
   "Manages games and invites."

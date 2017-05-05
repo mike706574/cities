@@ -19,14 +19,16 @@
     (loop [[head & tail] invites]
       (when head
         (cond
-          (= head [sender recipient]) {:milo/status :invite-already-sent}
-          (= head [recipient sender]) {:milo/status :invite-already-received}
+          (= head [sender recipient]) {:milo/status :invite-already-sent
+                                       :milo/invite invite}
+          (= head [recipient sender]) {:milo/status :invite-already-received
+                                       :milo/invite invite}
           :else (recur tail))))))
 
 (defrecord RefInviteManager [active-games invites event-manager]
   InviteManager
   (invites-for-player [this player-id]
-    (filter #(some #{player-id} %) @invites))
+    (into #{} (filter #(some #{player-id} %) @invites)))
 
   (send-invite [this invite]
     (dosync

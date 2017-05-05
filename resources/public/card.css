@@ -1,0 +1,152 @@
+:root {
+    --xf: 1;
+}
+
+.card {
+    margin: 0;
+    padding: 0;
+    position: relative;
+    float: left;
+    margin-right: 0px;
+    width: 150px;
+    height: 220px;
+    border-radius: 10px;
+    -webkit-box-shadow: 3px 3px 7px rgba(0,0,0,0.3);
+    box-shadow: 3px 3px 7px rgba(0,0,0,0.3);
+}
+
+.blue { background: #2196F3; }
+.green { background: #4CAF50; }
+.red { background: #F44336; }
+.black { background: #000000; }
+.yellow { background: #FFEB3B; }
+
+.card p {
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    color: white;
+    font: 100px/220px Georgia, serif;
+    user-select: none;
+}
+
+.rank-wager:before, .rank-wager:after { content: "W";  color: white; }
+.rank-1:before, .rank-1:after { content: "1";  color: white; }
+.rank-2:before, .rank-2:after { content: "2";  color: white; }
+.rank-3:before, .rank-3:after { content: "3";  color: white; }
+.rank-4:before, .rank-4:after { content: "4";  color: white; }
+.rank-5:before, .rank-5:after { content: "5";  color: white; }
+.rank-6:before, .rank-6:after { content: "6";  color: white; }
+.rank-7:before, .rank-7:after { content: "7";  color: white; }
+.rank-8:before, .rank-8:after { content: "8";  color: white; }
+.rank-9:before, .rank-9:after { content: "9";  color: white; }
+.rank-10:before, .rank-10:after { content: "10";  color: white; }
+
+div[class*='rank']:before {
+    position: absolute;
+    font-size: 35px;
+    left: 5px;
+    top: 5px;
+}
+
+div[class*='rank']:after {
+    position: absolute;
+    font-size: 35px;
+    right: 5px;
+    bottom: 5px;
+}
+
+.card:hover {
+    cursor: pointer;
+}
+
+.hand {
+    margin: 50px;
+    zoom:1;
+    width: 350px;
+    height: 250px;
+    position: relative;
+}
+
+/* For modern browsers */
+.hand:before,
+.hand:after {
+    content:"";
+    display:table;
+}
+
+.hand:after {
+    clear:both;
+}
+
+.hand {
+    width: 600px;
+    height: 250px;
+    position: absolute;
+    top: 100;
+    left: 0;
+    -webkit-transition: top 0.3s ease, left 0.3s ease;
+    -moz-transition: top 0.3s ease, left 0.3s ease;
+    -o-transition: top 0.3s ease, left 0.3s ease;
+    -ms-transition: top 0.3s ease, left 0.3s ease;
+    transition: top 0.3s ease, left 0.3s ease;
+}
+
+
+.hand > .card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: top 0.3s ease, left 0.3s ease;
+}
+
+.hand .card-1 {
+    transform: rotate(-30deg) scale(var(--xf), var(--xf));
+}
+
+.hand .card-2 {
+    left: 20px;
+    top: -20px;
+    transform: rotate(-21deg) scale(var(--xf), var(--xf));
+}
+
+.hand .card-3 {
+    left: 50px;
+    top: -30px;
+    transform: rotate(-14deg) scale(var(--xf), var(--xf));
+}
+
+.hand .card-4 {
+    left: 80px;
+    top: -40px;
+    transform: rotate(-7deg) scale(var(--xf), var(--xf));
+}
+
+.hand .card-5 {
+    left: 130px;
+    top: -50px;
+    transform: rotate(0deg) scale(var(--xf), var(--xf));
+}
+
+.hand .card-6 {
+    left: 170px;
+    top: -50px;
+    transform: rotate(7deg) scale(var(--xf), var(--xf));
+}
+
+.hand .card-7 {
+    left: 215px;
+    top: -40px;
+    transform: rotate(14deg) scale(var(--xf), var(--xf));
+}
+
+.hand .card-8 {
+    left: 250px;
+    top: -30px;
+    transform: rotate(21deg) scale(var(--xf), var(--xf));
+}
+
+.hand > .card:hover {
+    -webkit-box-shadow: 1px 1px 7px rgba(0,0,0,0.4);
+    box-shadow: 1px 1px 7px rgba(0,0,0,0.4);
+}

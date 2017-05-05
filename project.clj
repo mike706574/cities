@@ -34,7 +34,7 @@
                  [org.clojure/clojurescript "1.9.521"]
                  [com.cognitect/transit-cljs "0.8.239"]
 
-                 [cljsjs/react-with-addons "15.5.0-0"]
+                 [cljsjs/react-with-addons "15.4.2-2"]
                  [com.yetanalytics/re-mdl "0.1.5"]
                  [reagent "0.6.1" :exclusions [cljsjs/react]]
                  [re-frame "0.9.2" :exclusions [cljsjs/react]]

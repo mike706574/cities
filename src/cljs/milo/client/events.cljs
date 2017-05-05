@@ -25,10 +25,12 @@
 (def game-toast! (partial screen-toast! :game))
 
 (defn- handle-turn-taken*
-  [{player :player current-game-id :game-id :as db} {:keys [:milo/status :milo.game/game :milo.game/move] :as event}]
-  (println "Handling turn taken!!!")
+  [{player :player current-game-id :game-id :as db} event]
   (guard-event db event
-    (let [game-id (:milo.game/id game)]
+    (let [{status :milo/status
+           game-id :milo.game/id
+           game :milo.game/game
+           move :milo.game/move} event]
       (if-not (= game-id current-game-id)
         (assoc-in db [:active-games game-id] game)
         (let [screen (case status
@@ -36,11 +38,10 @@
                        :round-over :round-over
                        :game-over :game-over)
               message (game/move-sentence player move)]
-          (println "Status is " status "... going to screen" screen)
           (game-toast! db {:message message})
           (-> db
               (assoc-in [:active-games game-id] game)
-              (dissoc :move-message)
+              (dissoc :card :move-message)
               (assoc :screen screen
                      :status-message message
                      :destination :expedition
@@ -286,6 +287,7 @@
 
 (defn handle-generic-error
   [db [_ body]]
+  (log/debug "Handling generic error.")
   (assoc db
          :screen :error
          :error-message "Generic error."
@@ -302,8 +304,8 @@
    (let [toaster (:toaster system)
          {player :milo.player/id
           active-games :milo/active-games
-          invites :milo/invitse} state]
-     (println "Initialized!")
+          invites :milo/invites} state]
+     (log/debug "Initialized!")
      {:screen :menu
       :socket nil
       :player player
@@ -332,10 +334,13 @@
  (fn
    [db [_ {status :status response :response :as failure}]]
    (if (= status 409)
-     ;; TODO
-     (do (println response)
-       (menu-toast! db {:message (:milo.server/message response)
-                        :error? true}))
+     (let [message (let [{:keys [:milo/status :milo/invite]} response
+                         recipient (second invite)]
+                     (case (:milo/status response)
+                       :invite-already-sent (str "You've already invited " recipient ".")
+                       :invite-already-received (str "You already have an invite from " recipient ".")
+                       (pretty response)))]
+       (menu-toast! db {:message message}))
      (assoc db :screen :error :error-message (str response)))))
 
 (rf/reg-event-fx :cancel-invite cancel-invite)
