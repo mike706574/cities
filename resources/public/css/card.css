@@ -1,9 +1,9 @@
 div.hand {
   padding: 0;
-  margin: 0;
   position: relative;
   height: 150px;
-
+  width: 280px;
+  margin: auto;
 }
 
 div.hand > .card {
@@ -63,49 +63,49 @@ div.hand > div[class*='rank']:after {
 }
 
 .card-1 {
-  left: 0px;
+  left: -22px;
   top: 40px;
   transform: rotate(-25deg);
 }
 
 .card-2 {
-  left: 34px;
+  left: 12px;
   top: 22px;
   transform: rotate(-17deg);
 }
 
 .card-3 {
-  left: 72px;
+  left: 50px;
   top: 8px;
   transform: rotate(-10deg);
 }
 
 .card-4 {
-  left: 108px;
+  left: 88px;
   top: 0px;
   transform: rotate(-5deg);
 }
 
 .card-5 {
-  left: 158px;
+  left: 134px;
   top: 0px;
   transform: rotate(5deg);
 }
 
 .card-6 {
-  left: 193px;
+  left: 171px;
   top: 8px;
   transform: rotate(10deg);
 }
 
 .card-7 {
-  left: 231px;
+  left: 209px;
   top: 22px;
   transform: rotate(17deg);
 }
 
 .card-8 {
-  left: 265px;
+  left: 243px;
   top: 40px;
   transform: rotate(25deg);
 }
