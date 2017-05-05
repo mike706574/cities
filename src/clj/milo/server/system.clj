@@ -16,19 +16,19 @@
   (atom {"admin" {:username "admin"
                   :password (creds/hash-bcrypt "admin")
                   :roles #{:milo/admin}
-                  :avatar "default"}
+                  :avatar "user.jpg"}
          "mike" {:username "mike"
                  :password (creds/hash-bcrypt "mike")
                  :roles #{:milo/user}
-                 :avatar "default"}
+                 :avatar "cookie.jpg"}
          "abby" {:username "abby"
                  :password (creds/hash-bcrypt "abby")
                  :roles #{:milo/user}
-                 :avatar "default"}
+                 :avatar "user.jpg"}
          "guest" {:username "guest"
                   :password (creds/hash-bcrypt "guest")
                   :roles #{:milo/user}
-                  :avatar "default"}}))
+                  :avatar "user.jpg"}}))
 
 (derive :milo/admin :milo/user)
 
@@ -73,7 +73,7 @@
    :active-games (ref {"1" test-game})
    :completed-games (ref {})
 
-   :invites (ref #{})
+   :invites (ref #{["mike" "abby"]})
    :users users
 
    :conn-manager (conn/manager)

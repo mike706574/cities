@@ -274,12 +274,13 @@
               [:li.mdl-list__item
                {:key id}
                [:span.mdl-list__item-primary-content
-                [:i.material-icons.mdl-list__item-avatar "person"]
+                [:img.mdl-list__item-avatar
+                 {:src (str "images/" @(rf/subscribe [:avatar opponent])) }]
                 (str opponent " [" id "]")]
                [:span.mdl-list__item-secondary-action
                 (button "Play" #(rf/dispatch [:play-game id]))]]))]
     [:ul.mdl-list.no-spacing
-     (map game-item games)]))
+     (doall (map game-item games))]))
 
 (defn ready-games []
   (let [games @(rf/subscribe [:ready-games])]

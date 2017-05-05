@@ -110,14 +110,18 @@
 
 (def test-game (game/game ["mike" "abby"] [deck-1 deck-1 deck-1] 4))
 
-(comment
-  (defn parse
+(defn parse
   [request]
   (if (contains? request :body)
     (update request :body (comp message/decode slurp))
     request))
+
+(comment
+
   (parse @(http/get "http://localhost:8001/api/menu"
                     {:headers {"Player" "abby"
                                "Accept" "application/transit+json"}
                     :throw-exceptions false}) )
+
+
   )

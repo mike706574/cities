@@ -122,14 +122,23 @@
       out)))
 
 (defn handle-menu-retrieval
-  [{:keys [game-manager invite-manager]} request]
+  [{:keys [game-manager invite-manager user-manager]} request]
   (handle-exceptions request
     (let [player (get-in request [:headers "player"])
           active-games (->> player
                             (game-api/active-games-for-player game-manager)
                             (util/map-vals (partial model/summarize-game-for player)))
           invites (invite-api/invites-for-player invite-manager player)
+
+          usernames (-> #{}
+                    (into (mapcat identity invites))
+                    (into (map (comp :milo.game/opponent val)) active-games))
+          avatars (into {} (map
+                            (fn [username]
+                              [username (user-api/avatar user-manager username)])
+                            usernames))
           menu {:milo.player/id player
                 :milo/active-games active-games
+                :milo/avatars avatars
                 :milo/invites invites}]
       (body-response 200 request menu))))

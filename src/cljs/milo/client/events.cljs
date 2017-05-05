@@ -304,6 +304,7 @@
    (let [toaster (:toaster system)
          {player :milo.player/id
           active-games :milo/active-games
+          avatars :milo/avatars
           invites :milo/invites} state]
      (log/debug "Initialized!")
      {:screen :menu
@@ -312,6 +313,7 @@
       :status-message "Initialized."
       :events {}
       :game-id nil
+      :avatars avatars
       :active-games active-games
       :invites invites
       :move-message nil
