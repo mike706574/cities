@@ -45,7 +45,7 @@
               (dissoc :card :move-message)
               (assoc :screen screen
                      :status-message message
-                     :destination :expedition
+                     :destination nil
                      :source :draw-pile)))))))
 
 (defmulti handle-message
@@ -164,7 +164,7 @@
              :loading? false
              :screen :game
              :card nil
-             :destination :expedition
+             :destination nil
              :source :draw-pile
              :status-message "Connected to game."))))
 
@@ -373,10 +373,17 @@
    (assoc db :player player)))
 
 (rf/reg-event-db
- :destination-change
+ :select-destination
  (fn [db [_ destination]]
    (-> db
-       (assoc :destination destination)
+       (assoc :destination destination :source nil)
+       (dissoc :move-message))))
+
+(rf/reg-event-db
+ :deselect-destination
+ (fn [db [_ destination]]
+   (-> db
+       (assoc :destination destination :source nil)
        (dissoc :move-message))))
 
 (rf/reg-event-db
@@ -391,7 +398,7 @@
  (fn [db [_ card]]
    (log/debug (str "Changing card to " card))
    (-> db
-       (assoc :card card)
+       (assoc :card card :destination nil :source nil)
        (dissoc :move-message))))
 
 (rf/reg-event-db

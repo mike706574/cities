@@ -66,12 +66,16 @@
  (fn [db _]
    (select-keys db [:error-message :error-body])))
 
-
 ;; Move
 (rf/reg-sub
  :card
  (fn [db _]
    (:card db)))
+
+(rf/reg-sub
+ :card-selected?
+ (fn [db _]
+   (not (nil? (:card db)))))
 
 (rf/reg-sub
  :destination
@@ -149,9 +153,9 @@
    (get-in (game db) [:milo.game/round :milo.game/draw-count])))
 
 (rf/reg-sub
- :turn
+ :turn?
  (fn [db _]
-   (get-in (game db) [:milo.game/round :milo.game/turn])))
+   (= (:player db) (get-in (game db) [:milo.game/round :milo.game/turn]))))
 
 (rf/reg-sub
  :available-discards

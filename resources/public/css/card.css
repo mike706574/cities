@@ -1,3 +1,5 @@
+
+
 div.hand {
   padding: 0;
   position: relative;
@@ -17,7 +19,6 @@ div.hand {
   height: 80px;
   cursor: pointer;
   border-radius: 5px;
-  -webkit-box-shadow: 3px 3px 7px rgba(0,0,0,0.3);
   box-shadow: 3px 3px 7px rgba(0,0,0,0.3);
 }
 
@@ -26,6 +27,7 @@ div.hand {
 .red { background: #F44336; }
 .white { background: #000000; }
 .yellow { background: #fbc02d; }
+.purple { background: #3F51B5; }
 
 .card p {
   margin: 0;
@@ -63,91 +65,176 @@ div[class*='rank']:after {
   bottom: -1px;
 }
 
-div.hand > .card-1 {
+div.hand > .hand-1 {
   left: -22px;
   top: 40px;
   transform: rotate(-25deg);
 }
 
-div.hand > .card-2 {
+.hand-2 {
   left: 12px;
   top: 22px;
   transform: rotate(-17deg);
 }
 
-div.hand > .card-3 {
+.hand-3 {
   left: 50px;
   top: 8px;
   transform: rotate(-10deg);
 }
 
-div.hand > .card-4 {
+.hand-4 {
   left: 88px;
   top: 0px;
   transform: rotate(-5deg);
 }
 
-div.hand > .card-5 {
-  left: 134px;
-  top: 0px;
-  transform: rotate(5deg);
+.hand-5 {
+  left: -12px;
+  top: 90px;
+  transform: rotate(-25deg);
 }
 
-div.hand > .card-6 {
-  left: 171px;
-  top: 8px;
-  transform: rotate(10deg);
+.hand-6 {
+  left: 26px;
+  top: 72px;
+  transform: rotate(-17deg);
 }
 
-div.hand > .card-7 {
-  left: 209px;
-  top: 22px;
-  transform: rotate(17deg);
+.hand-7 {
+  left: 64px;
+  top: 58px;
+  transform: rotate(-10deg);
 }
 
-div.hand > .card-8 {
-  left: 243px;
-  top: 40px;
-  transform: rotate(25deg);
+.hand-8 {
+  left: 102px;
+  top: 50px;
+  transform: rotate(-5deg);
 }
 
 div.hand > .selected-card {
-  transform: scale(1.1, 1.1);
+  border: 3px solid white;
+  z-index: 10;
+}
+
+div.expedition > .selected-card {
   border: 3px solid white;
   z-index: 2;
+}
+
+.card-highlighted {
+  border: 3px solid white;
 }
 
 div.expedition {
   padding: 0;
   position: relative;
-  height: 300px;
+  height: 315px;
   width: 280px;
   margin: auto;
 }
 
-div.expedition > .red { left: -18px; }
-div.expedition > .green { left: 44px; }
-div.expedition > .blue { left: 106px; }
-div.expedition > .yellow { left: 168px; }
-div.expedition > .white { left: 230px; }
-
-.expedition > .card {
-  position: absolute;
-  top: 0;
-  left: 0;
+div.hand > div.red-discard {
+  left: 165px;
+  top: 15px;
+  transform: rotate(-17deg);
 }
 
-.expedition > .card-1 { top: 0px; }
-.expedition > .card-2 { top: 18px; }
-.expedition > .card-3 { top: 36px; }
-.expedition > .card-4 { top: 54px; }
-.expedition > .card-5 { top: 72px; }
-.expedition > .card-6 { top: 90px; }
-.expedition > .card-7 { top: 108px; }
-.expedition > .card-8 { top: 126px; }
-.expedition > .card-9 { top: 144px; }
-.expedition > .card-10 { top: 162px; }
-.expedition > .card-11 { top: 180px; }
-.expedition > .card-12 { top: 198px; }
-.expedition > .card-13 { top: 216px; }
-.expedition > .card-14 { top: 234px; }
+.green-discard {
+  left: 202px;
+  top: 4px;
+  transform: rotate(-10deg);
+  z-index: 2;
+}
+
+div.hand > div.blue-discard {
+  left: 249px;p
+  top: 0px;
+  transform: rotate(-5deg);
+  z-index: 3;
+}
+
+div.hand > div.yellow-discard {
+  left: 175px;
+  top: 70px;
+  transform: rotate(-17deg);
+  z-index: 4;xb
+}
+
+div.hand > div.white-discard {
+  left: 255px;
+  top: 56px;
+  transform: rotate(-2deg);
+  z-index: 4;
+}
+
+.expedition-marker {
+  z-index: -1;
+  height: 80px;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  float: left;
+  margin-right: 10px;
+  width: 55px;
+  height: 80px;
+  border-radius: 5px;
+  box-shadow: 3px 3px 7px rgba(0,0,0,0.3);
+}
+
+.light-yellow { background: #FFF176; }
+.light-red { background: #FFCDD2; }
+.light-blue { background: #90CAF9; }
+.light-green { background: #A5D6A7; }
+.light-white { background: #E0E0E0; }
+
+div.hand > div.draw-pile {
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  float: left;
+  margin-right: 10px;
+  border: 1px solid white;
+  width: 55px;
+  height: 80px;
+  cursor: pointer;
+  border-radius: 5px;
+  box-shadow: 3px 3px 7px rgba(0,0,0,0.3);
+  left: 215px;
+  top: 58px;
+  transform: rotate(-10deg);
+  background: #3F51B5;
+  z-index: 5;
+}
+
+  div.draw-pile p {
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    color: white;
+    font-weight: bold;
+    font: 32px/80px Georgia, serif;
+    user-select: none;
+  }
+
+  .expedition-red { left: -18px; }
+  .expedition-green { left: 44px }
+  .expedition-blue { left: 106px; }
+  .expedition-yellow { left: 168px; }
+  .expedition-white { left: 230px; }
+
+  .expedition-1 { top: 0px; }
+  .expedition-2 { top: 18px; }
+  .expedition-3 { top: 36px; }
+  .expedition-4 { top: 54px; }
+  .expedition-5 { top: 72px; }
+  .expedition-6 { top: 90px; }
+  .expedition-7 { top: 108px; }
+  .expedition-8 { top: 126px; }
+  .expedition-9 { top: 144px; }
+  .expedition-10 { top: 162px; }
+  .expedition-11 { top: 180px; }
+  .expedition-12 { top: 198px; }
+  .expedition-13 { top: 216px; }
+  .expedition-14 { top: 234px; }
