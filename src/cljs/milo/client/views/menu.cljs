@@ -45,8 +45,7 @@
                  {:src (str "images/" @(rf/subscribe [:avatar opponent])) }]
                 (str opponent " [" id "]")]
                [:span.mdl-list__item-secondary-action
-                (button "Play" #(do (println "HELLO")
-                                    (rf/dispatch [:play-game id])))]]))]
+                (button "Play" #(rf/dispatch [:play-game id]))]]))]
     [:ul.mdl-list.no-spacing
      (doall (map game-item games))]))
 
