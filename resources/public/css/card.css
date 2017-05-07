@@ -6,7 +6,7 @@ div.hand {
   margin: auto;
 }
 
-div.hand > .card {
+.card {
   margin: 0;
   padding: 0;
   position: absolute;
@@ -15,6 +15,7 @@ div.hand > .card {
   border: 1px solid white;
   width: 55px;
   height: 80px;
+  cursor: pointer;
   border-radius: 5px;
   -webkit-box-shadow: 3px 3px 7px rgba(0,0,0,0.3);
   box-shadow: 3px 3px 7px rgba(0,0,0,0.3);
@@ -26,7 +27,7 @@ div.hand > .card {
 .white { background: #000000; }
 .yellow { background: #fbc02d; }
 
-div.hand > .card p {
+.card p {
   margin: 0;
   padding: 0;
   text-align: center;
@@ -36,75 +37,75 @@ div.hand > .card p {
   user-select: none;
 }
 
-div.hand > .rank-W:before, .rank-W:after { content: "W";  color: white; }
-div.hand > .rank-1:before, .rank-1:after { content: "1";  color: white; }
-div.hand > .rank-2:before, .rank-2:after { content: "2";  color: white; }
-div.hand > .rank-3:before, .rank-3:after { content: "3";  color: white; }
-div.hand > .rank-4:before, .rank-4:after { content: "4";  color: white; }
-div.hand > .rank-5:before, .rank-5:after { content: "5";  color: white; }
-div.hand > .rank-6:before, .rank-6:after { content: "6";  color: white; }
-div.hand > .rank-7:before, .rank-7:after { content: "7";  color: white; }
-div.hand > .rank-8:before, .rank-8:after { content: "8";  color: white; }
-div.hand > .rank-9:before, .rank-9:after { content: "9";  color: white; }
-div.hand > .rank-10:before, .rank-10:after { content: "10";  color: white; }
+.rank-W:before, .rank-W:after { content: "W";  color: white; }
+.rank-1:before, .rank-1:after { content: "1";  color: white; }
+.rank-2:before, .rank-2:after { content: "2";  color: white; }
+.rank-3:before, .rank-3:after { content: "3";  color: white; }
+.rank-4:before, .rank-4:after { content: "4";  color: white; }
+.rank-5:before, .rank-5:after { content: "5";  color: white; }
+.rank-6:before, .rank-6:after { content: "6";  color: white; }
+.rank-7:before, .rank-7:after { content: "7";  color: white; }
+.rank-8:before, .rank-8:after { content: "8";  color: white; }
+.rank-9:before, .rank-9:after { content: "9";  color: white; }
+.rank-10:before, .rank-10:after { content: "10";  color: white; }
 
-div.hand > div[class*='rank']:before {
+div[class*='rank']:before {
   position: absolute;
-  font-size: 16px;
+  font-size: 14px;
   left: 3px;
-  top: 2px;
+  top: 0px;
 }
 
-div.hand > div[class*='rank']:after {
+div[class*='rank']:after {
   position: absolute;
-  font-size: 16px;
+  font-size: 14px;
   right: 3px;
-  bottom: 2px;
+  bottom: -1px;
 }
 
-.card-1 {
+div.hand > .card-1 {
   left: -22px;
   top: 40px;
   transform: rotate(-25deg);
 }
 
-.card-2 {
+div.hand > .card-2 {
   left: 12px;
   top: 22px;
   transform: rotate(-17deg);
 }
 
-.card-3 {
+div.hand > .card-3 {
   left: 50px;
   top: 8px;
   transform: rotate(-10deg);
 }
 
-.card-4 {
+div.hand > .card-4 {
   left: 88px;
   top: 0px;
   transform: rotate(-5deg);
 }
 
-.card-5 {
+div.hand > .card-5 {
   left: 134px;
   top: 0px;
   transform: rotate(5deg);
 }
 
-.card-6 {
+div.hand > .card-6 {
   left: 171px;
   top: 8px;
   transform: rotate(10deg);
 }
 
-.card-7 {
+div.hand > .card-7 {
   left: 209px;
   top: 22px;
   transform: rotate(17deg);
 }
 
-.card-8 {
+div.hand > .card-8 {
   left: 243px;
   top: 40px;
   transform: rotate(25deg);
@@ -115,3 +116,38 @@ div.hand > .selected-card {
   border: 3px solid white;
   z-index: 2;
 }
+
+div.expedition {
+  padding: 0;
+  position: relative;
+  height: 300px;
+  width: 280px;
+  margin: auto;
+}
+
+div.expedition > .red { left: -18px; }
+div.expedition > .green { left: 44px; }
+div.expedition > .blue { left: 106px; }
+div.expedition > .yellow { left: 168px; }
+div.expedition > .white { left: 230px; }
+
+.expedition > .card {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.expedition > .card-1 { top: 0px; }
+.expedition > .card-2 { top: 18px; }
+.expedition > .card-3 { top: 36px; }
+.expedition > .card-4 { top: 54px; }
+.expedition > .card-5 { top: 72px; }
+.expedition > .card-6 { top: 90px; }
+.expedition > .card-7 { top: 108px; }
+.expedition > .card-8 { top: 126px; }
+.expedition > .card-9 { top: 144px; }
+.expedition > .card-10 { top: 162px; }
+.expedition > .card-11 { top: 180px; }
+.expedition > .card-12 { top: 198px; }
+.expedition > .card-13 { top: 216px; }
+.expedition > .card-14 { top: 234px; }

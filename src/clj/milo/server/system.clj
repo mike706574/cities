@@ -5,6 +5,7 @@
             [milo.api.game :as game-api]
             [milo.api.invite :as invite-api]
             [milo.api.user :as user]
+            [milo.data :as data]
             [milo.game :as game]
             [milo.card :as card]
             [milo.server.connection :as conn]
@@ -62,6 +63,7 @@
 
 (def test-game (game/game ["mike" "abby"] [deck-1 deck-1 deck-1] 4))
 
+(def test-game-2 (:game (last (take 30 (data/rand-turns (game/rand-game ["mike" "abby"]))))))
 (defn system
   [config]
   (log/info "Building system.")
@@ -70,7 +72,7 @@
 
    :connections (atom {})
    :events (ref {})
-   :active-games (ref {"1" test-game})
+   :active-games (ref {"1" test-game "2" test-game-2})
    :completed-games (ref {})
 
    :invites (ref #{["mike" "abby"]})

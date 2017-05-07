@@ -1,9 +1,10 @@
 (ns milo.client.events
   (:require [ajax.core :as ajax]
             [clojure.string :as str]
+            [milo.client.misc :refer [pretty]]
+            [milo.data :as data]
             [milo.game :as game]
             [milo.player :as player]
-            [milo.client.misc :refer [pretty]]
             [reagent.core :as r]
             [re-frame.core :as rf]
             [taoensso.timbre :as log])
@@ -37,7 +38,7 @@
                        :taken :game
                        :round-over :round-over
                        :game-over :game-over)
-              message (game/move-sentence player move)]
+              message (data/move-sentence player move)]
           (game-toast! db {:message message})
           (-> db
               (assoc-in [:active-games game-id] game)

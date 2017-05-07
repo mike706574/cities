@@ -19,28 +19,6 @@
     :on-click  on-click}
    label])
 
-(defn active-hand-view-2
-  [hand]
-  (let [selected-card @(rf/subscribe [:card])]
-    [:div.hand.mdl-cell.mdl-cell--12-col
-     (map-indexed
-      (fn [index card]
-        (let [rank (if (card/wager? card)
-                     "W"
-                     (str (:milo.card/number card)))
-              num (inc index)
-              classes ["card"
-                       (name (:milo.card/color card))
-                       (str "rank-" rank)
-                       (str "card-" num)
-                       (if (= selected-card card) "selected-card" "idle")]]
-          [:div
-           {:key num
-            :class (str/join " " classes)
-            :on-click #(rf/dispatch [:card-change card])}
-           [:p rank]]))
-      hand)]))
-
 (defn idle-hand-view-2
   [hand]
   [:div.hand.mdl-cell.mdl-cell--12-col
@@ -166,41 +144,86 @@
             (card/label card)]]))
       available-discards)]))
 
+(defn rank [card] (if (card/wager? card) "W" (str (:milo.card/number card))))
+
+(defn hand-view []
+  (log/info "Rendering hand.")
+  (let [hand @(rf/subscribe [:hand])
+        selected-card @(rf/subscribe [:card])]
+    [:div.mdl-grid
+     [:div.hand.mdl-cell.mdl-cell--12-col
+      (map-indexed
+       (fn [index card]
+         (let [rank (rank card)
+               num (inc index)
+               classes ["card"
+                        (name (:milo.card/color card))
+                        (str "rank-" rank)
+                        (str "card-" num)
+                        (if (= selected-card card) "selected-card" "idle")]]
+           [:div
+            {:key num
+             :class (str/join " " classes)
+             :on-click #(rf/dispatch [:card-change card])}
+            [:p rank]]))
+       hand)]]))
+
+(defn opponent-expedition-card
+  [index card]
+  (let [rank (rank card)
+        num (inc index)
+        classes ["card"
+                 (name (:milo.card/color card))
+                 (str "rank-" rank)
+                 (str "card-" num)]]
+    [:div
+     {:key classes
+      :class (str/join " " classes)}
+     [:p rank]]))
+
+(defn player-expedition-card
+  [index card]
+  (let [rank (rank card)
+        num (- 13 index)
+        classes ["card"
+                 (name (:milo.card/color card))
+                 (str "rank-" rank)
+                 (str "card-" num)]]
+    [:div
+     {:key classes
+      :class (str/join " " classes)}
+     [:p rank]]))
+
+(def collapse (partial mapcat identity))
+
+(defn expeditions-view []
+  (log/info "Rendering expeditions.")
+  (let [player-expeditions @(rf/subscribe [:expeditions])
+        opponent-expeditions @(rf/subscribe [:opponent-expeditions])]
+    [:div.expedition.mdl-cell.mdl-cell--12-col
+     (collapse
+      [(collapse (map #(map-indexed player-expedition-card (val %)) player-expeditions))
+       (collapse (map #(map-indexed opponent-expedition-card (val %)) opponent-expeditions))])]))
+
 (defn game []
-  (log/debug "Rendering game!")
+  (log/info "Rendering game.")
   (let [player @(rf/subscribe [:player])
         turn @(rf/subscribe [:turn])
-        round-number @(rf/subscribe [:round-number])
-        draw-count @(rf/subscribe [:draw-count])
-        opponent @(rf/subscribe [:opponent])
         available-discards @(rf/subscribe [:available-discards])
-        hand @(rf/subscribe [:hand])
         move-message @(rf/subscribe [:move-message])
-        expeditions @(rf/subscribe [:expeditions])
-        opponent-expeditions @(rf/subscribe [:opponent-expeditions])
         turn? (= player turn)]
     [:div
-     [:h5.no-spacing (str "Round " round-number " versus " opponent)]
-     [:p.spaced-text (str "There are " draw-count " cards left. It's " (if turn? "your" (str opponent "'s")) " turn. ")]
+     {:style {"paddingTop" "8px"}}
+     [expeditions-view]
+     [hand-view]
+
      (if turn?
        [:div
-        [:h5.no-spacing "Hand"]
-        (active-hand-view-2 hand)
-        [:h5.no-spacing "Destination"]
         [destination-view]
-        [:h5.no-spacing "Sources"]
         [source-view available-discards]
         (button (str "Take Turn") #(rf/dispatch [:take-turn]))
         (when move-message [:p.red-text move-message])]
-       [:div
-        [:h5.no-spacing "Hand"]
-        (idle-hand-view-2 hand)
-        [:h5.no-spacing "Discards"]
-        (inline-cards available-discards)])
-     [:h5.no-spacing "Your Expeditions"]
-     (expedition-table expeditions)
-     [:h5.no-spacing (str opponent "'s Expeditions")]
-     (expedition-table opponent-expeditions)]))
+       (inline-cards available-discards))]))
 
 (defn expedition-score-tables
   [round player opponent]
@@ -278,7 +301,8 @@
                  {:src (str "images/" @(rf/subscribe [:avatar opponent])) }]
                 (str opponent " [" id "]")]
                [:span.mdl-list__item-secondary-action
-                (button "Play" #(rf/dispatch [:play-game id]))]]))]
+                (button "Play" #(do (println "HELLO")
+                                    (rf/dispatch [:play-game id])))]]))]
     [:ul.mdl-list.no-spacing
      (doall (map game-item games))]))
 
@@ -383,11 +407,43 @@
 
 (defn menu []
   (log/debug "Rendering menu.")
+  [:div.mdl-layout__content
+   [:div.mdl-grid
+    [:div.mdl-cell.mdl-cell--12-col
+     [ready-games]
+     [waiting-games]
+     [received-invites]
+     [outbox]]]])
+
+(defn game-container []
   [:div
-   [ready-games]
-   [waiting-games]
-   [received-invites]
-   [outbox]])
+   [:div.mdl-demo-navigation
+    [mdl/layout
+     :fixed-header? true
+     :children
+     [[mdl/layout-header
+       :attr {:style {:color "white"}}
+       :children
+       [[:button.mdl-layout-icon.mdl-button.mdl-js-button.mdl-button--icon
+         {:on-click #(rf/dispatch [:show-menu])}
+         [:i.material-icons "arrow_back"]]
+        [:div
+         {:style {"margin" "8px 0 0 54px"}}
+         (let [player @(rf/subscribe [:player])
+               opponent @(rf/subscribe [:opponent])
+               turn @(rf/subscribe [:turn])]
+           (if (= player turn)
+             (str "Your turn versus " opponent)
+             (str opponent "'s turn")))]
+        [:div
+         {:style {"marginLeft" "54px"}}
+         (let [round-number @(rf/subscribe [:round-number])
+               draw-count @(rf/subscribe [:draw-count])]
+           (str "Round #" round-number ", " draw-count " cards left"))]]]
+      [mdl/layout-content
+       :attr {:style {:background "white"}}
+       :children [[game]
+                  [toast]]]]]]])
 
 (defn container
   [body]
@@ -413,21 +469,18 @@
          :attr {:on-click #(rf/dispatch [:show-menu])}]]]
       [mdl/layout-content
        :attr {:style {:background "white"}}
-       :children [[:div.mdl-layout__conent
-                   [:div.mdl-grid.demo-content
-                    [:div.mdl-cell.mdl-cell--12-col body]]]
+       :children [body
                   [toast]]]]]]])
 
 (defn app []
   (let [screen @(rf/subscribe [:screen])]
-    [container
-     [(case screen
-        :game game
-        :round-over round-over
-        :game-over game-over
-        :menu menu
-        :error error
-        (throw (js/Error. (str "Invalid screen: " screen))))]]))
+    (case screen
+      :game [game-container]
+      :round-over [container [round-over]]
+      :game-over [container [game-over]]
+      :menu [container [menu]]
+      :error [container [error]]
+      (throw (js/Error. (str "Invalid screen: " screen))))))
 
 (defn initialization-error
   [body]
