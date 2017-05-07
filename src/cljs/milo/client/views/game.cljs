@@ -96,7 +96,7 @@
         opponent @(rf/subscribe [:opponent])
         turn? @(rf/subscribe [:turn?])]
     [:div
-     {:style {"margin" "8px 0 0 54px"
+     {:style {"marginTop" "8px"
               "fontWeight" "500"}}
      (if turn?
       (str "Your turn versus " opponent)
@@ -106,8 +106,7 @@
   (let [round-number @(rf/subscribe [:round-number])
         draw-count @(rf/subscribe [:draw-count])]
     [:div
-     {:style {"marginLeft" "54px"
-              "fontWeight" "500"}}
+     {:style {"fontWeight" "500"}}
      (str "Round #" round-number " - " draw-count " cards left")]))
 
 (defn container []

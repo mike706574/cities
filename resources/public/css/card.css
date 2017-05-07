@@ -133,6 +133,7 @@ div.expedition {
   height: 315px;
   width: 280px;
   margin: auto;
+  cursor: pointer;
 }
 
 div.hand > div.red-discard {
