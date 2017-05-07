@@ -64,9 +64,9 @@
                              (let [color (:milo.card/color card)
                                    num (- 14 (count (get player-expeditions color)))
                                    rank (rank card)
-                                   classes (str "card selected-card"
-                                                " expedition-" (name (:milo.card/color card))
-
+                                   classes (str "card selected-card "
+                                                (name color)
+                                                " expedition-" (name color)
                                                 " rank-" rank
                                                 " expedition-" num)]
                                [[:div
