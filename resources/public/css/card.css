@@ -1,7 +1,7 @@
 div.bottom-container {
   padding: 0;
   position: relative;
-  height: 150px;
+  height: 145px;
   width: 280px;
   margin: auto;
 }
@@ -153,7 +153,7 @@ div[class*='rank']:after {
 
 div.top-container {
   position: relative;
-  height: 315px;
+  height: 312px;
   padding-top: 6px;
   width: 280px;
   margin: 4px auto 0 auto;

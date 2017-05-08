@@ -59,7 +59,7 @@
 (defn handle-accepting-invite
   [{:keys [player-bus invite-manager]} request]
   (handle-exceptions request
-    (with-body [invite :milo.api.invite/invite request]
+    (with-body [invite :milo/invite request]
       (let [{player "player"} (:headers request)
             [sender recipient] invite]
         (if-not (= player recipient)

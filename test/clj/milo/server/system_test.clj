@@ -164,27 +164,27 @@
         (is (= #:milo{:status :game-created, :invite ["mike" "abby"], :event-id 1}
                (dissoc body :milo.game/game))))
       (is (= #{} @(:invites system)))
-      (let [turn (get-in (get @(:games system) "1")
+      (let [turn (get-in (get @(:active-games system) "1")
                          [:milo.game/round :milo.game/turn])]
-        (is (= {:milo/status :game-created,
+        (is (= {:milo/status :game-created
                 :milo.game/game
-                #:milo.game{:id "1",
-                            :opponent "abby",
-                            :over? false,
-                            :loaded? false,
-                            :round-number 1,
-                            :turn turn},
-                :milo/invite ["mike" "abby"],
+                #:milo.game{:id "1"
+                            :opponent "abby"
+                            :over? false
+                            :loaded? false
+                            :round #:milo.game{:turn turn}
+                            :round-number 1}
+                :milo/invite ["mike" "abby"]
                 :milo/event-id 1}
                (receive! mike-conn)))
-        (is (= {:milo/status :game-created,
+        (is (= {:milo/status :game-created
                 :milo.game/game
-                #:milo.game{:id "1",
-                            :opponent "mike",
-                            :over? false,
-                            :loaded? false,
-                            :round-number 1,
-                            :turn turn},
-                :milo/invite ["mike" "abby"],
+                #:milo.game{:id "1"
+                            :opponent "mike"
+                            :over? false
+                            :loaded? false
+                            :round #:milo.game{:turn turn},
+                            :round-number 1}
+                :milo/invite ["mike" "abby"]
                 :milo/event-id 1}
                (receive! abby-conn)))))))
