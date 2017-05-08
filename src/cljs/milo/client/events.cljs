@@ -375,9 +375,11 @@
 (rf/reg-event-db
  :select-destination
  (fn [db [_ destination]]
-   (-> db
-       (assoc :destination destination :source nil)
-       (dissoc :move-message))))
+   (if (:card db)
+     (-> db
+         (assoc :destination destination :source nil)
+         (dissoc :move-message))
+     db)))
 
 (rf/reg-event-db
  :deselect-destination

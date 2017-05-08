@@ -83,6 +83,12 @@
    (:destination db)))
 
 (rf/reg-sub
+ :drawn-discard
+ (fn [db _]
+   (when-let [source (:source db)]
+     (first (filter #(= (:milo.card/color %) source) (:available-discards db))))))
+
+(rf/reg-sub
  :source
  (fn [db _]
    (:source db)))
@@ -91,12 +97,6 @@
  :move-message
  (fn [db _]
    (:move-message db)))
-
-
-
-
-
-
 
 ;; Game
 (defn game [db] (get-in db [:active-games (:game-id db)]))
@@ -152,10 +152,18 @@
  (fn [db _]
    (get-in (game db) [:milo.game/round :milo.game/draw-count])))
 
+(defn turn?
+  [db]
+  (= (:player db) (get-in (game db) [:milo.game/round :milo.game/turn])))
+
+(rf/reg-sub :turn? (fn [db _] (turn? db)))
+
 (rf/reg-sub
- :turn?
+ :turn-ready?
  (fn [db _]
-   (= (:player db) (get-in (game db) [:milo.game/round :milo.game/turn]))))
+   (and (turn? db) (:move db) (:destination db) (:source db))))
+
+
 
 (rf/reg-sub
  :available-discards

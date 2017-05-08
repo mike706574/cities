@@ -15,6 +15,90 @@
 
 (def app-title "Misplaced Villages")
 
+(defn rank [card] (if (card/wager? card) "W" (str (:milo.card/number card))))
+
+(defn hand []
+  (let [hand @(rf/subscribe [:hand])
+        turn? @(rf/subscribe [:turn?])
+        selected-card @(rf/subscribe [:card])
+        source @(rf/subscribe [:source])
+        destination @(rf/subscribe [:destination])
+        available-discards @(rf/subscribe [:available-discards])]
+    [:div
+     (map-indexed
+      (fn [index card]
+        (let [num (inc index)]
+          (if (and destination (= card selected-card))
+            (when source
+              (if (= source :draw-pile)
+                [:div
+                 {:key "drawn-card"
+                  :class (str "card card-highlighted purple hand-" num)}
+                 [:p "D"]]
+                (let [drawn-card @(rf/subscribe [:drawn-discard])
+                      rank (rank drawn-card)]
+                  [:div
+                   {:key "drawn-card"
+                    :class (str "card card-highlighted " (name source) " rank-" rank " hand-" num)}
+                   [:p rank]])))
+            (let [rank (rank card)
+                  color (name (:milo.card/color card))
+                  classes (str "card "
+                               color
+                               " rank- " rank
+                               " hand-" num
+                               (when (= selected-card card) " selected-card"))]
+              [:div
+               {:key num
+                :class classes
+                :on-click #(when turn?
+                             (rf/dispatch [:card-change card]))}
+               [:p rank]]))))
+      hand)]))
+
+(defn discards []
+  (let [available-discards @(rf/subscribe [:available-discards])
+        source @(rf/subscribe [:source])
+        destination @(rf/subscribe [:destination])]
+    [:div
+     (map
+      (fn [card]
+        (let [color (:milo.card/color card)]
+          (when-not (= source color)
+            (let [rank (rank card)
+                  classes ["card"
+                           (name color)
+                           (str "rank-" rank)
+                           (str (name color) "-discard")
+                           (when (= source color) "selected-card")]]
+              [:div
+               {:key classes
+                :class (str/join " " classes)
+                :on-click #(when destination
+                             (rf/dispatch [:source-change color]))}
+               [:p rank]]))))
+      available-discards)]))
+
+(defn draw-pile []
+  (let [source @(rf/subscribe [:source])]
+    [:div.draw-pile
+     {:key "draw-pile"
+      :on-click #(rf/dispatch [:source-change :draw-pile])
+      :class (str "draw-pile" (when (= source :draw-pile) " selected-card"))}
+     [:p "D"]]))
+
+(defn bottom []
+  (log/info "Rendering hand.")
+  (let [destination @(rf/subscribe [:destination])
+        available-discards @(rf/subscribe [:available-discards])
+
+        turn? @(rf/subscribe [:turn?])]
+    [:div.mdl-grid
+     [:div.bottom-container.mdl-cell.mdl-cell--12-col
+      [hand]
+      [discards]
+      [draw-pile]]]))
+
 (defn button
   [label on-click]
   [:button.mdl-button.mdl-button--raised
@@ -77,19 +161,21 @@
             (card/label card)]]))
       available-discards)]))
 
+(defn play-button
+  []
+  (when @(rf/subscribe [:turn-ready?])
+    [:div
+     (button (str "Take Turn") #(rf/dispatch [:take-turn]))
+     (when-let [move-message @(rf/subscribe [:move-message])]
+       [:p.red-text move-message])]))
+
 (defn game []
   (log/info "Rendering game.")
-  (let [available-discards @(rf/subscribe [:available-discards])
-        move-message @(rf/subscribe [:move-message])
-        turn? @(rf/subscribe [:turn?])]
-    [:div
-     {:style {"paddingTop" "5px"}}
-     [expedition-view/expedition]
-     [hand-view/active]
-     (if turn?
-       [:div
-        (button (str "Take Turn") #(rf/dispatch [:take-turn]))
-        (when move-message [:p.red-text move-message])])]))
+  [:div
+   {:style {"paddingTop" "5px"}}
+   [expedition-view/expeditions]
+   [bottom]
+   [play-button]])
 
 (defn player-info []
   (let [player @(rf/subscribe [:player])

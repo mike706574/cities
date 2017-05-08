@@ -1,6 +1,4 @@
-
-
-div.hand {
+div.bottom-container {
   padding: 0;
   position: relative;
   height: 150px;
@@ -65,7 +63,7 @@ div[class*='rank']:after {
   bottom: -1px;
 }
 
-div.hand > .hand-1 {
+.hand-1 {
   left: -22px;
   top: 40px;
   transform: rotate(-25deg);
@@ -113,21 +111,16 @@ div.hand > .hand-1 {
   transform: rotate(-5deg);
 }
 
-div.hand > .selected-card {
+.selected-card {
   border: 3px solid white;
   z-index: 10;
 }
 
-div.expedition > .selected-card {
-  border: 3px solid white;
-  z-index: 2;
-}
-
-.card-highlighted {
+.highlighted-card {
   border: 3px solid white;
 }
 
-div.expedition {
+div.top-container {
   padding: 0;
   position: relative;
   height: 315px;
@@ -136,7 +129,7 @@ div.expedition {
   cursor: pointer;
 }
 
-div.hand > div.red-discard {
+div.red-discard {
   left: 165px;
   top: 15px;
   transform: rotate(-17deg);
@@ -149,21 +142,21 @@ div.hand > div.red-discard {
   z-index: 2;
 }
 
-div.hand > div.blue-discard {
+div.blue-discard {
   left: 249px;p
   top: 0px;
   transform: rotate(-5deg);
   z-index: 3;
 }
 
-div.hand > div.yellow-discard {
+div.yellow-discard {
   left: 175px;
   top: 70px;
   transform: rotate(-17deg);
   z-index: 4;xb
 }
 
-div.hand > div.white-discard {
+div.white-discard {
   left: 255px;
   top: 56px;
   transform: rotate(-2deg);
@@ -190,7 +183,7 @@ div.hand > div.white-discard {
 .light-green { background: #A5D6A7; }
 .light-white { background: #E0E0E0; }
 
-div.hand > div.draw-pile {
+div.draw-pile {
   margin: 0;
   padding: 0;
   position: absolute;
@@ -209,33 +202,33 @@ div.hand > div.draw-pile {
   z-index: 5;
 }
 
-  div.draw-pile p {
-    margin: 0;
-    padding: 0;
-    text-align: center;
-    color: white;
-    font-weight: bold;
-    font: 32px/80px Georgia, serif;
-    user-select: none;
-  }
+div.draw-pile p {
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  color: white;
+  font-weight: bold;
+  font: 32px/80px Georgia, serif;
+  user-select: none;
+}
 
-  .expedition-red { left: -18px; }
-  .expedition-green { left: 44px }
-  .expedition-blue { left: 106px; }
-  .expedition-yellow { left: 168px; }
-  .expedition-white { left: 230px; }
+.expedition-red { left: -18px; }
+.expedition-green { left: 44px }
+.expedition-blue { left: 106px; }
+.expedition-yellow { left: 168px; }
+.expedition-white { left: 230px; }
 
-  .expedition-1 { top: 0px; }
-  .expedition-2 { top: 18px; }
-  .expedition-3 { top: 36px; }
-  .expedition-4 { top: 54px; }
-  .expedition-5 { top: 72px; }
-  .expedition-6 { top: 90px; }
-  .expedition-7 { top: 108px; }
-  .expedition-8 { top: 126px; }
-  .expedition-9 { top: 144px; }
-  .expedition-10 { top: 162px; }
-  .expedition-11 { top: 180px; }
-  .expedition-12 { top: 198px; }
-  .expedition-13 { top: 216px; }
-  .expedition-14 { top: 234px; }
+.expedition-1 { top: 0px; }
+.expedition-2 { top: 18px; }
+.expedition-3 { top: 36px; }
+.expedition-4 { top: 54px; }
+.expedition-5 { top: 72px; }
+.expedition-6 { top: 90px; }
+.expedition-7 { top: 108px; }
+.expedition-8 { top: 126px; }
+.expedition-9 { top: 144px; }
+.expedition-10 { top: 162px; }
+.expedition-11 { top: 180px; }
+.expedition-12 { top: 198px; }
+.expedition-13 { top: 216px; }
+.expedition-14 { top: 234px; }
