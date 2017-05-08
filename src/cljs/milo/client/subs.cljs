@@ -161,9 +161,7 @@
 (rf/reg-sub
  :turn-ready?
  (fn [db _]
-   (and (turn? db) (:move db) (:destination db) (:source db))))
-
-
+   (and (turn? db) (:card db) (:destination db) (:source db))))
 
 (rf/reg-sub
  :available-discards

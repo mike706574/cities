@@ -17,87 +17,89 @@
 
 (defn rank [card] (if (card/wager? card) "W" (str (:milo.card/number card))))
 
-(defn hand []
-  (let [hand @(rf/subscribe [:hand])
-        turn? @(rf/subscribe [:turn?])
-        selected-card @(rf/subscribe [:card])
+(defn discards [destination]
+  (log/info "Rendering discard piles.")
+  (let [destination @(rf/subscribe [:destination])
+        available-discards @(rf/subscribe [:available-discards])
         source @(rf/subscribe [:source])
-        destination @(rf/subscribe [:destination])
-        available-discards @(rf/subscribe [:available-discards])]
-    [:div
-     (map-indexed
-      (fn [index card]
-        (let [num (inc index)]
-          (if (and destination (= card selected-card))
-            (when source
-              (if (= source :draw-pile)
-                [:div
-                 {:key "drawn-card"
-                  :class (str "card card-highlighted purple hand-" num)}
-                 [:p "D"]]
-                (let [drawn-card @(rf/subscribe [:drawn-discard])
-                      rank (rank drawn-card)]
-                  [:div
-                   {:key "drawn-card"
-                    :class (str "card card-highlighted " (name source) " rank-" rank " hand-" num)}
-                   [:p rank]])))
-            (let [rank (rank card)
-                  color (name (:milo.card/color card))
-                  classes (str "card "
-                               color
-                               " rank- " rank
-                               " hand-" num
-                               (when (= selected-card card) " selected-card"))]
-              [:div
-               {:key num
-                :class classes
-                :on-click #(when turn?
-                             (rf/dispatch [:card-change card]))}
-               [:p rank]]))))
-      hand)]))
-
-(defn discards []
-  (let [available-discards @(rf/subscribe [:available-discards])
-        source @(rf/subscribe [:source])
-        destination @(rf/subscribe [:destination])]
+        selected-card @(rf/subscribe [:card])]
     [:div
      (map
       (fn [card]
         (let [color (:milo.card/color card)]
-          (when-not (= source color)
+          (when-not (or (= source color) (= destination color))
             (let [rank (rank card)
-                  classes ["card"
-                           (name color)
-                           (str "rank-" rank)
-                           (str (name color) "-discard")
-                           (when (= source color) "selected-card")]]
+                  classes (str "card "
+                               (name color)
+                               " rank-" rank
+                               " "
+                               (name color) "-discard")]
               [:div
                {:key classes
-                :class (str/join " " classes)
+                :class classes
                 :on-click #(when destination
                              (rf/dispatch [:source-change color]))}
                [:p rank]]))))
       available-discards)]))
 
+(defn discard []
+  (let [destination @(rf/subscribe [:destination])
+        selected-card @(rf/subscribe [:card])
+        color (:milo.card/color selected-card)
+        source @(rf/subscribe [:source])]
+    (when (and destination (not= destination :expedition) (not= source color))
+      (log/info "Rendering discard.")
+      (let [rank (rank selected-card)
+            classes (str "card "
+                         (name color)
+                         " rank-" rank
+                         " "
+                         (name color) "-discard")]
+        [:div
+         {:key classes
+          :class classes}
+         [:p rank]]))))
+
 (defn draw-pile []
-  (let [source @(rf/subscribe [:source])]
+  (let [source @(rf/subscribe [:source])
+        turn? @(rf/subscribe [:turn?])
+        card @(rf/subscribe [:card])
+        destination @(rf/subscribe [:destination])]
     [:div.draw-pile
      {:key "draw-pile"
-      :on-click #(rf/dispatch [:source-change :draw-pile])
-      :class (str "draw-pile" (when (= source :draw-pile) " selected-card"))}
+      :on-click #(when card
+                   (if-not destination
+                     (rf/dispatch [:select-destination (:milo.card/color card)])
+                     (rf/dispatch [:source-change :draw-pile])))
+      :class (str "draw-pile"
+                  (when (= source :draw-pile) " selected-card")
+                  (when turn? " pointer"))}
      [:p "D"]]))
 
+(defn ready-button
+  []
+  (when @(rf/subscribe [:turn-ready?])
+    [:button.mdl-button.mdl-js-button.mdl-button--fab.mdl-button--colored
+     {:style {"position" "absolute"
+              "left" "120px"
+              "top" "100px"
+              "zIndex" "9"
+              "border" "1px solid white"}
+      :on-click #(rf/dispatch [:take-turn])}
+     [:i.material-icons "check"]]))
+
 (defn bottom []
-  (log/info "Rendering hand.")
+  (log/info "Rendering bottom.")
   (let [destination @(rf/subscribe [:destination])
         available-discards @(rf/subscribe [:available-discards])
-
         turn? @(rf/subscribe [:turn?])]
     [:div.mdl-grid
      [:div.bottom-container.mdl-cell.mdl-cell--12-col
-      [hand]
+      [hand-view/hand]
       [discards]
-      [draw-pile]]]))
+      [discard]
+      [draw-pile]
+      [ready-button]]]))
 
 (defn button
   [label on-click]
@@ -121,62 +123,6 @@
           (card/label card)]])
       cards)]))
 
-(defn destination-view []
-  (let [destination @(rf/subscribe [:destination])]
-    [:ul.no-space
-     [:li {:key :play
-           :style {"display" "inline"}}
-      [:input {:type "radio"
-               :checked (= destination :expedition)
-               :on-change #(rf/dispatch [:destination-change :expedition])}]
-      [:span "expedition"]]
-     [:li {:key :discard
-           :style {"display" "inline"}}
-      [:input {:type "radio"
-               :checked (= destination :discard-pile)
-               :on-change #(rf/dispatch [:destination-change :discard-pile])}]
-      [:span.black "discard"]]]))
-
-(defn source-view
-  [available-discards]
-  (let [source @(rf/subscribe [:source])]
-    [:ul.no-space
-     [:li {:key :draw-pile
-           :style {"display" "inline"}}
-      [:input {:type "radio"
-               :checked (= source :draw-pile)
-               :on-change #(rf/dispatch [:source-change :draw-pile])}]
-      [:span.black "draw"]]
-     (map
-      (fn [card]
-        (let [color (::card/color card)]
-          [:li
-           {:key color
-            :style {"display" "inline"}}
-           [:input {:type "radio"
-                    :checked (= source color)
-                    :on-change #(rf/dispatch [:source-change color])}]
-           [:span
-            {:class (name color)}
-            (card/label card)]]))
-      available-discards)]))
-
-(defn play-button
-  []
-  (when @(rf/subscribe [:turn-ready?])
-    [:div
-     (button (str "Take Turn") #(rf/dispatch [:take-turn]))
-     (when-let [move-message @(rf/subscribe [:move-message])]
-       [:p.red-text move-message])]))
-
-(defn game []
-  (log/info "Rendering game.")
-  [:div
-   {:style {"paddingTop" "5px"}}
-   [expedition-view/expeditions]
-   [bottom]
-   [play-button]])
-
 (defn player-info []
   (let [player @(rf/subscribe [:player])
         opponent @(rf/subscribe [:opponent])
@@ -197,7 +143,7 @@
      (str "Round #" round-number " - " draw-count " cards left")]))
 
 (defn container []
-  (log/debug "Rendering game container...")
+  (log/debug "Rendering game...")
   [:div
    [:div.mdl-demo-navigation
     [mdl/layout
@@ -213,5 +159,6 @@
         [round-info]]]
       [mdl/layout-content
        :attr {:style {:background "white"}}
-       :children [[game]
+       :children [[expedition-view/expeditions]
+                  [bottom]
                   [toast-view/toast]]]]]]])

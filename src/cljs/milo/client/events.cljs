@@ -42,7 +42,7 @@
           (game-toast! db {:message message})
           (-> db
               (assoc-in [:active-games game-id] game)
-              (dissoc :card :move-message)
+              (dissoc :card)
               (assoc :screen screen
                      :status-message message
                      :destination nil
@@ -147,8 +147,7 @@
          :game-id nil
          :card nil
          :destination nil
-         :source nil
-         :move-message nil))
+         :source nil))
 
 (defn show-game
   [db game-id]
@@ -175,7 +174,6 @@
       (if (:loaded? game)
         {:db (show-game db game-id)}
         {:db (-> db
-                 (dissoc :move-message)
                  (assoc :loading? true))
          :http-xhrio {:method :get
                       :uri (str "/api/game/" game-id)
@@ -198,7 +196,7 @@
   (let [player (:player db)
         invite [opponent player]]
     (log/debug (str "Accepting invite: " invite))
-    {:db (dissoc db :move-message)
+    {:db db
      :http-xhrio {:method :post
                   :uri (str "/api/game")
                   :headers {"Player" player}
@@ -212,7 +210,7 @@
   [{db :db} [_ opponent]]
   (let [player (:player db)
         invite [player opponent]]
-    {:db (dissoc db :move-message)
+    {:db db
      :http-xhrio {:method :post
                   :uri "/api/invite"
                   :headers {"Player" player}
@@ -232,7 +230,7 @@
   [{db :db} [_ opponent]]
   (let [player (:player db)
         invite [player opponent]]
-    {:db (dissoc db :move-message)
+    {:db db
      :http-xhrio {:method :delete
                   :uri (str "/api/invite/" player "/" opponent)
                   :headers {"Player" player}
@@ -245,7 +243,7 @@
   [{db :db} [_ opponent]]
   (let [player (:player db)
         invite [player opponent]]
-    {:db (dissoc db :move-message)
+    {:db db
      :http-xhrio {:method :delete
                   :uri (str "/api/invite/" opponent "/" player)
                   :headers {"Player" player}
@@ -284,7 +282,8 @@
                       :invalid-move "Invalid move!"
                       :discard-empty "Discard empty!"
                       :card-not-in-hand "Card not in hand!")]
-        (assoc db :move-message message)))))
+        (game-toast! db {:message message})
+        (assoc db :card nil :destination nil :source nil)))))
 
 (defn handle-generic-error
   [db [_ body]]
@@ -317,7 +316,6 @@
       :avatars avatars
       :active-games active-games
       :invites invites
-      :move-message nil
       :card nil
       :source nil
       :destination nil
@@ -376,32 +374,23 @@
  :select-destination
  (fn [db [_ destination]]
    (if (:card db)
-     (-> db
-         (assoc :destination destination :source nil)
-         (dissoc :move-message))
+     (assoc db :destination destination :source nil)
      db)))
 
 (rf/reg-event-db
  :deselect-destination
  (fn [db [_ destination]]
-   (-> db
-       (assoc :destination destination :source nil)
-       (dissoc :move-message))))
+   (assoc db :destination destination :source nil)))
 
 (rf/reg-event-db
  :source-change
  (fn [db [_ source]]
-   (-> db
-       (assoc :source source)
-       (dissoc :move-message))))
+   (assoc db :source source)))
 
 (rf/reg-event-db
  :card-change
  (fn [db [_ card]]
-   (log/debug (str "Changing card to " card))
-   (-> db
-       (assoc :card card :destination nil :source nil)
-       (dissoc :move-message))))
+   (assoc db :card card :destination nil :source nil)))
 
 (rf/reg-event-db
  :toast

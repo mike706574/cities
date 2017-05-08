@@ -6,6 +6,21 @@ div.bottom-container {
   margin: auto;
 }
 
+.no-select {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
+}
+
+.pointer {
+  cursor: pointer;
+}
+
 .card {
   margin: 0;
   padding: 0;
@@ -15,9 +30,17 @@ div.bottom-container {
   border: 1px solid white;
   width: 55px;
   height: 80px;
-  cursor: pointer;
   border-radius: 5px;
   box-shadow: 3px 3px 7px rgba(0,0,0,0.3);
+  /* .no-select */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
 }
 
 .blue { background: #2196F3; }
@@ -34,7 +57,15 @@ div.bottom-container {
   color: white;
   font-weight: bold;
   font: 32px/80px Georgia, serif;
+  /* .no-select */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
 }
 
 .rank-W:before, .rank-W:after { content: "W";  color: white; }
@@ -121,12 +152,20 @@ div[class*='rank']:after {
 }
 
 div.top-container {
-  padding: 0;
   position: relative;
   height: 315px;
+  padding-top: 6px;
   width: 280px;
-  margin: auto;
-  cursor: pointer;
+  margin: 4px auto 0 auto;
+  /* .no-select */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
 }
 
 div.red-discard {
@@ -192,7 +231,6 @@ div.draw-pile {
   border: 1px solid white;
   width: 55px;
   height: 80px;
-  cursor: pointer;
   border-radius: 5px;
   box-shadow: 3px 3px 7px rgba(0,0,0,0.3);
   left: 215px;
@@ -200,6 +238,16 @@ div.draw-pile {
   transform: rotate(-10deg);
   background: #3F51B5;
   z-index: 5;
+  /* .no-select */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
+
 }
 
 div.draw-pile p {

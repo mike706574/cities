@@ -1,11 +1,7 @@
 (ns milo.client.views.expedition
-  (:require [clojure.string :as str]
-            [re-frame.core :as rf]
-            [re-mdl.core :as mdl]
+  (:require [re-frame.core :as rf]
             [milo.game :as game]
             [milo.card :as card]
-            [milo.player :as player]
-            [milo.score :as score]
             [taoensso.timbre :as log]))
 
 (def collapse (partial mapcat identity))
@@ -27,7 +23,7 @@
      [:p rank]]))
 
 (def markers
-  [:div
+  [:div.markers
    [:div.expedition-marker.expedition-yellow.light-yellow.expedition-1
     {:key "yellow-opponent-expedition-marker"}]
    [:div.expedition-marker.expedition-yellow.light-yellow.expedition-14
@@ -70,23 +66,25 @@
     [:div
      (when (and card (= destination :expedition))
        (let [color (:milo.card/color card)
-             num (- 14 (count (get player-expeditions color)))
+             num (- 14 (count (get expeditions color)))
              rank (rank card)
              classes (str "card selected-card "
                           (name color)
                           " expedition-" (name color)
                           " rank-" rank
                           " expedition-" num)]
-         [[:div
-           {:key classes
-            :class classes}
-           [:p rank]]]))]))
+         [:div
+          {:key classes
+           :class classes}
+          [:p rank]]))]))
 
 (defn expeditions []
   (log/info "Rendering expeditions.")
-  [:div.top-container.mdl-cell.mdl-cell--12-col
-   {:on-click #(rf/dispatch [:select-destination :expedition])}
-   markers
-   [player-expeditions]
-   [opponent-expeditions]
-   [selected-cards]])
+  (let [turn? @(rf/subscribe [:turn?])]
+    [:div
+     {:class (str "top-container mdl-cell mdl-cell--12-col no-select" (when turn? " pointer"))
+      :on-click #(rf/dispatch [:select-destination :expedition])}
+     markers
+     [player-expeditions]
+     [opponent-expeditions]
+     [selected-cards]]))

@@ -13,8 +13,9 @@
 (defn toast []
   (let [{:keys [message action-event action-label color] :as toast}  @(rf/subscribe [:toast])]
     (if toast
-      [:div#toast.mdl-js-snackbar.mdl-snackbar.mdl-snackbar--active
-       {:aria-hidden "false"}
+      [:div#toast.toaster.mdl-js-snackbar.mdl-snackbar.mdl-snackbar--active
+       {:aria-hidden "false"
+        :style {"zIndex" "10"}}
        [:div.mdl-snackbar__text (or message "No message.")]
        (when action-event
          [:button.mdl-snackbar__action
@@ -23,5 +24,6 @@
           (or action-label "Perform Action")])]
       [:div#toast.mdl-js-snackbar.mdl-snackbar
        {:class ""
+        :style {"zIndex" "10"}
         :aria-hidden "true"}
        [:div.mdl-snackbar__text ""]])))
