@@ -44,10 +44,14 @@
 
 (defmacro with-system
   [& body]
-  `(let [~'system (component/start-system (system/system config))]
-     (try
-       ~@body
-       (finally (component/stop-system ~'system)))))
+  (let [port (:port config)
+        ws-url (str "ws://localhost:" port "/api/websocket")]
+    `(let [~'system (component/start-system (system/system config))
+           ~'ws-url ~ws-url
+           ~'http-url #(str "http://localhost:" ~port %)]
+       (try
+         ~@body
+         (finally (component/stop-system ~'system))))))
 
 (defn receive!
   [conn]
@@ -72,8 +76,9 @@
 
 ;; TODO: Handle errors
 (defn connect!
-  [id]
-  (let [conn @(http/websocket-client "ws://localhost:10000/websocket")]
+  [ws-url id]
+  (println "CONNECTIN 2" ws-url)
+  (let [conn @(http/websocket-client ws-url)]
     (send! conn id)
     (is (not= :timeout
               (receive! conn)))
@@ -81,11 +86,11 @@
 
 (deftest canceling-an-invite
   (with-system
-    (let [mike-conn (connect! "mike")
-          abby-conn (connect! "abby")]
+    (let [mike-conn (connect! ws-url "mike")
+          abby-conn (connect! ws-url "abby")]
       (dosync (alter (:invites system) conj ["mike" "abby"]))
       (is (= #{["mike" "abby"]} @(:invites system)))
-      (let [{:keys [status body]} (parse @(http/delete "http://localhost:10000/api/invite/mike/abby"
+      (let [{:keys [status body]} (parse @(http/delete (http-url "/api/invite/mike/abby")
                                                        {:headers {"Player" "mike"
                                                                   "Content-Type" "application/transit+json"
                                                                   "Accept" "application/transit+json"}
@@ -105,11 +110,11 @@
 
 (deftest rejecting-an-invite
   (with-system
-    (let [mike-conn (connect! "mike")
-          abby-conn (connect! "abby")]
+    (let [mike-conn (connect! ws-url "mike")
+          abby-conn (connect! ws-url "abby")]
       (dosync (alter (:invites system) conj ["mike" "abby"]))
       (is (= #{["mike" "abby"]} @(:invites system)))
-      (let [{:keys [status body]} (parse @(http/delete "http://localhost:10000/api/invite/mike/abby"
+      (let [{:keys [status body]} (parse @(http/delete (http-url "/api/invite/mike/abby")
                                                        {:headers {"Player" "abby"
                                                                   "Content-Type" "application/transit+json"
                                                                   "Accept" "application/transit+json"}
@@ -128,10 +133,10 @@
 
 (deftest sending-an-invite
   (with-system
-    (let [mike-conn (connect! "mike")
-          abby-conn (connect! "abby")]
+    (let [mike-conn (connect! ws-url "mike")
+          abby-conn (connect! ws-url "abby")]
       (is (= #{} @(:invites system)))
-      (let [{:keys [status body]} (parse @(http/post "http://localhost:10000/api/invite"
+      (let [{:keys [status body]} (parse @(http/post (http-url "/api/invite")
                                                      {:headers {"Player" "mike"
                                                                 "Content-Type" "application/transit+json"
                                                                 "Accept" "application/transit+json"}
@@ -151,15 +156,15 @@
 
 (deftest accepting-an-invite
   (with-system
-    (let [mike-conn (connect! "mike")
-          abby-conn (connect! "abby")]
+    (let [mike-conn (connect! ws-url "mike")
+          abby-conn (connect! ws-url "abby")]
       (dosync (alter (:invites system) conj ["mike" "abby"]))
-      (let [{:keys [status body]} (parse @(http/post "http://localhost:10000/api/game"
+      (let [{:keys [status body]} (parse @(http/post (http-url "/api/game")
                                                      {:headers {"Player" "abby"
                                                                 "Content-Type" "application/transit+json"
                                                                 "Accept" "application/transit+json"}
                                                       :body (encode ["mike" "abby"])
-                                                      :throw-exceptions false}) )]
+                                                      :throw-exceptions false}))]
         (is (= 201 status))
         (is (= #:milo{:status :game-created, :invite ["mike" "abby"], :event-id 1}
                (dissoc body :milo.game/game))))

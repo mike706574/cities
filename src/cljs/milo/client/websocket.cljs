@@ -31,7 +31,7 @@
               port (-> js/window .-location .-port)
               host (-> js/window .-location .-hostname )
               base (if (str/blank? port) host (str host ":" port))
-              url (str protocol "://" base "/websocket")]
+              url (str protocol "://" base "/api/websocket")]
           (log/debug (str "Establishing websocket connection to " url "."))
           (let [socket (js/WebSocket. url)]
             (set! (.-onopen socket)

@@ -11,7 +11,8 @@
             [milo.server.connection :as conn]
             [milo.server.handler :as handler]
             [milo.server.service :as service]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [taoensso.timbre.appenders.core :as appenders]))
 
 (def users
   (atom {"admin" {:username "admin"
@@ -36,6 +37,9 @@
 (defn system
   [config]
   (log/info "Building system.")
+  (log/merge-config!
+   {:appenders {:spit (appenders/spit-appender
+                       {:fname "/home/mike/milo-webapp.log"})}})
   {:player-bus (bus/event-bus)
    :game-bus (bus/event-bus)
 
