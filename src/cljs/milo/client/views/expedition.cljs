@@ -45,19 +45,19 @@
    [:div.expedition-marker.expedition-white.light-white.expedition-14
     {:key "white-player-expedition-marker"}]])
 
-(defn player-expeditions []
-  (let [expeditions @(rf/subscribe [:expeditions])]
-    [:div
-     (map
-      #(map-indexed (fn [index card] (expedition-card card (- 14 index))) %)
-      (vals expeditions))]))
+(defn player-expeditions
+  [expeditions]
+  [:div
+   (map
+    #(map-indexed (fn [index card] (expedition-card card (- 14 index))) %)
+    (vals expeditions))])
 
-(defn opponent-expeditions []
-  (let [expeditions @(rf/subscribe [:opponent-expeditions])]
-    [:div
-     (map
-      #(map-indexed (fn [index card] (expedition-card card (inc index))) %)
-      (vals expeditions))]))
+(defn opponent-expeditions
+  [expeditions]
+  [:div
+   (map
+    #(map-indexed (fn [index card] (expedition-card card (inc index))) %)
+    (vals expeditions))])
 
 (defn selected-cards []
   (let [destination @(rf/subscribe [:destination])
@@ -78,13 +78,19 @@
            :class classes}
           [:p rank]]))]))
 
-(defn expeditions []
-  (log/info "Rendering expeditions.")
+(defn round-over-expeditions
+  [player-exps opponent-exps]
+  [:div.top-container.mdl-cell.mdl-cell--12-col.no-select
+   markers
+   [player-expeditions player-exps]
+   [opponent-expeditions opponent-exps]])
+
+(defn in-game-expeditions []
   (let [turn? @(rf/subscribe [:turn?])]
     [:div
      {:class (str "top-container mdl-cell mdl-cell--12-col no-select" (when turn? " pointer"))
       :on-click #(rf/dispatch [:select-destination :expedition])}
      markers
-     [player-expeditions]
-     [opponent-expeditions]
+     [player-expeditions @(rf/subscribe [:expeditions])]
+     [opponent-expeditions @(rf/subscribe [:opponent-expeditions])]
      [selected-cards]]))

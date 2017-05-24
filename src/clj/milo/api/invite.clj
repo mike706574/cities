@@ -53,7 +53,7 @@
      (if-not (contains? @invites invite)
        {:milo/status :invite-not-found}
        (let [id (str (inc (count @active-games)))
-             game (assoc (game/rand-game invite 4) ::game/id id)
+             game (assoc (game/rand-game invite 2) ::game/id id)
              event (event/store event-manager {:milo/status :game-created
                                                ::game/game game
                                                :milo/invite invite})]

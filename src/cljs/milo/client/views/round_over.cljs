@@ -1,4 +1,4 @@
-(ns milo.client.views.game
+(ns milo.client.views.round-over
   (:require [clojure.string :as str]
             [reagent.core :as r]
             [re-frame.core :as rf]
@@ -7,7 +7,7 @@
             [milo.card :as card]
             [milo.player :as player]
             [milo.score :as score]
-            [milo.client.misc :refer [pretty]]
+            [milo.client.misc :as misc :refer [pretty]]
             [milo.client.views.expedition :as expedition-view]
             [milo.client.views.hand :as hand-view]
             [milo.client.views.toast :as toast-view]
@@ -88,25 +88,6 @@
       :on-click #(rf/dispatch [:take-turn])}
      [:i.material-icons "check"]]))
 
-(defn bottom []
-  (log/info "Rendering bottom.")
-  (let [destination @(rf/subscribe [:destination])
-        available-discards @(rf/subscribe [:available-discards])
-        turn? @(rf/subscribe [:turn?])]
-    [:div.bottom-container.mdl-cell.mdl-cell--12-col
-     [hand-view/hand]
-     [discards]
-     [discard]
-     [draw-pile]
-     [ready-button]]))
-
-(defn button
-  [label on-click]
-  [:button.mdl-button.mdl-button--raised
-   {:value label
-    :on-click  on-click}
-   label])
-
 (defn inline-cards
   [cards]
   (if (empty? cards)
@@ -122,6 +103,13 @@
           (card/label card)]])
       cards)]))
 
+(defn button
+  [label on-click]
+  [:button.mdl-button.mdl-button--raised
+   {:value label
+    :on-click  on-click}
+   label])
+
 (defn player-info []
   (let [player @(rf/subscribe [:player])
         opponent @(rf/subscribe [:opponent])
@@ -129,9 +117,7 @@
     [:div
      {:style {"margin" "8px 0 0 54px"
               "fontWeight" "500"}}
-     (if turn?
-      (str "Your turn versus " opponent)
-      (str opponent "'s turn"))]))
+     "Versus " opponent]))
 
 (defn round-info []
   (let [round-number @(rf/subscribe [:round-number])
@@ -139,7 +125,49 @@
     [:div
      {:style {"marginLeft" "54px"
               "fontWeight" "500"}}
-     (str "Round #" round-number " - " draw-count " cards left")]))
+     (str "Round Over")]))
+
+(defn content []
+  (let [last-round @(rf/subscribe [:last-round])
+        player @(rf/subscribe [:player])
+        opponent @(rf/subscribe [:opponent])
+        all-data (:milo.game/player-data last-round)
+        player-expeditions (get-in all-data [player :milo.player/expeditions])
+        opponent-expeditions (get-in all-data [opponent :milo.player/expeditions])
+        opponent-scores (misc/map-vals score/expedition-score opponent-expeditions)
+        player-scores (misc/map-vals score/expedition-score player-expeditions)
+        opponent-sum (reduce + (vals opponent-scores))
+        player-sum (reduce + (vals player-scores))]
+    [:div
+     [:p {:style {"textAlign" "center"
+                  "marginBottom" "0"}}
+      opponent-sum]
+     (let [{:keys [red green blue yellow white]} opponent-scores]
+       [:div.score-container
+        [:div.score.score-red.red-text red]
+        [:div.score.score-green.green-text green]
+        [:div.score.score-blue.blue-text blue]
+        [:div.score.score-yellow.yellow-text yellow]
+        [:div.score.score-white.white-text white]])
+     [expedition-view/round-over-expeditions
+      player-expeditions
+      opponent-expeditions]
+     (let [{:keys [red green blue yellow white]} player-scores]
+       [:div.score-container
+        [:div.score.score-red.red-text red]
+        [:div.score.score-green.green-text green]
+        [:div.score.score-blue.blue-text blue]
+        [:div.score.score-yellow.yellow-text yellow]
+        [:div.score.score-white.white-text white]])
+     [:p {:style {"textAlign" "center"
+                  "marginBottom" "0"}}
+      player-sum]
+     [:div.mdl-grid
+      [:div.play-container
+       [:button.play.mdl-button.mdl-button--raised
+        {:value "Play"
+         :on-click #(rf/dispatch [:back-to-game])}
+        "Play"]]]]))
 
 (defn container []
   (log/debug "Rendering game...")
@@ -158,6 +186,4 @@
         [round-info]]]
       [mdl/layout-content
        :attr {:style {:background "white"}}
-       :children [[expedition-view/in-game-expeditions]
-                  [bottom]
-                  [toast-view/toast]]]]]]])
+       :children [[content]]]]]]])

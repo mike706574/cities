@@ -7,7 +7,7 @@
             [milo.client.subs]
             [milo.client.views :as views]
             [milo.client.websocket :as websocket]
-            [reagent.core :as r]
+           [reagent.core :as r]
             [re-frame.core :as rf]
             [taoensso.timbre :as log])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))

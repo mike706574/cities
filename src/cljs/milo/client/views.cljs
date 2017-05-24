@@ -11,10 +11,11 @@
             [milo.client.views.error :as error-view]
             [milo.client.views.game :as game-view]
             [milo.client.views.menu :as menu-view]
+            [milo.client.views.round-over :as round-over-view]
             [milo.client.views.toast :refer [toast]]
             [taoensso.timbre :as log]))
 
-(def app-title "Misplaced Villages")
+(def app-title "Lost Cities")
 
 (defn button
   [label on-click]
@@ -29,7 +30,7 @@
             [:th {:key color :class (name color)} (name color)])
           (tf [[color stack]]
             [:td {:key color :class (name color)}
-             (score/expedition-score stack)])
+            (score/expedition-score stack)])
           (td [row [color cards]]
             (if-let [card (get cards row)]
               [:td {:key color
@@ -89,16 +90,6 @@
           (expedition-score-tables round player opponent)])
        past-rounds)]]))
 
-(defn round-over []
-  (log/debug "Rendering round over screen!")
-  (let [player @(rf/subscribe [:player])
-        opponent @(rf/subscribe [:opponent])
-        round @(rf/subscribe [:last-round])]
-    [:div
-     [:h3 "Round Over"]
-     [button "Play" #(rf/dispatch [:back-to-game])]
-     (expedition-score-tables round player opponent)]))
-
 (defn container
   [body]
   [:div
@@ -130,7 +121,7 @@
   (let [screen @(rf/subscribe [:screen])]
     (case screen
       :game [game-view/container]
-      :round-over [container [round-over]]
+      :round-over [round-over-view/container]
       :game-over [container [game-over]]
       :menu [container [menu-view/menu]]
       :error [container [error-view/error]]

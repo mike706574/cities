@@ -52,7 +52,7 @@
   :plugins [[com.palletops/uberimage "0.4.1"]
             [juxt/lein-dockerstalk "0.1.0"]
             [lein-cljsbuild "1.1.5"]
-            [cider/cider-nrepl "0.14.0"]
+            [cider/cider-nrepl "0.15.0-SNAPSHOT"]
             [org.clojure/tools.nrepl "0.2.12"]
             [lein-figwheel "0.5.10"]
             [lein-cloverage "1.0.9"]]
@@ -68,7 +68,7 @@
                           :uberjar-name "milo-webapp.jar"}}
   :cljsbuild {:builds {:dev {:source-paths ["src/cljs"]
                              :figwheel {:on-jsload "milo.client.core/refresh"
-                                        :websocket-host "192.168.1.141"}
+                                        :websocket-host "localhost"}
                              :compiler {:main "milo.client.core"
                                         :asset-path "js"
                                         :source-map true
