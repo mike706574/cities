@@ -1,4 +1,4 @@
 FROM java:8
-ADD target/milo-webapp.jar /srv/milo-webapp.jar
+ADD target/cities-webapp.jar /srv/cities-webapp.jar
 EXPOSE 80
-CMD ["java","-jar","/srv/milo-webapp.jar"]
+CMD ["java","-jar","/srv/cities-webapp.jar"]

@@ -1,4 +1,4 @@
-# milo-webapp
+# cities-webapp
 
 A webapp for a [Lost Cities](https://en.wikipedia.org/wiki/Lost_Cities) clone.
 

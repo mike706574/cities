@@ -1,6 +1,6 @@
-(defproject org.clojars.mike706574/milo-webapp "0.0.1-SNAPSHOT"
+(defproject fun.mike/cities-webapp "0.0.1-SNAPSHOT"
   :description "A card game."
-  :url "https://github.com/mike706574/milo-webapp"
+  :url "https://github.com/mike706574/cities-webapp"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :min-lein-version "2.0.0"
@@ -10,7 +10,7 @@
                  [com.stuartsierra/component "0.3.2"]
 
                  ;; Game
-                 [org.clojars.mike706574/milo "0.0.1-SNAPSHOT"]
+                 [fun.mike/cities "0.0.1-SNAPSHOT"]
 
                  ;; Utility
                  [com.cognitect/transit-clj "0.8.300"]
@@ -64,12 +64,12 @@
                                   [figwheel-sidecar "0.5.10"]]
                    :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}}
              :production {:aot :all
-                          :main milo.server.main
-                          :uberjar-name "milo-webapp.jar"}}
+                          :main cities.server.main
+                          :uberjar-name "cities-webapp.jar"}}
   :cljsbuild {:builds {:dev {:source-paths ["src/cljs"]
-                             :figwheel {:on-jsload "milo.client.core/refresh"
+                             :figwheel {:on-jsload "cities.client.core/refresh"
                                         :websocket-host "localhost"}
-                             :compiler {:main "milo.client.core"
+                             :compiler {:main "cities.client.core"
                                         :asset-path "js"
                                         :source-map true
                                         :source-map-timestamp true

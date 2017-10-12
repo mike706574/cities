@@ -20,16 +20,16 @@
    [manifold.stream :as s]
    [manifold.deferred :as d]
    [manifold.bus :as bus]
-   [milo.card :as card]
-   [milo.game :as game]
-   [milo.player :as player]
-   [milo.server.system :as system]
-   [milo.server.message :as message]
+   [cities.card :as card]
+   [cities.game :as game]
+   [cities.player :as player]
+   [cities.server.system :as system]
+   [cities.server.message :as message]
    [taoensso.timbre :as log]))
 
 (log/set-level! :trace)
 
-(def config {:id "milo-server" :port 8001})
+(def config {:id "cities-server" :port 8001})
 
 (defonce system nil)
 
