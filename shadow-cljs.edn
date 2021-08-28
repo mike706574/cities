@@ -1,0 +1,19 @@
+;; shadow-cljs configuration
+{:source-paths
+ ["src"]
+
+ :dependencies
+ [[cljs-ajax "0.7.5"]
+  [com.cognitect/transit-cljs "0.8.269"]
+  [com.taoensso/timbre "5.1.2"]
+  [day8.re-frame/http-fx "0.2.3"]
+  [org.clojure/spec.alpha "0.2.194"]
+  [re-frame "1.2.0"]
+  [reagent "1.1.0"]]
+
+ :builds
+ {:frontend
+  {:target :browser
+   :modules {:main {:init-fn cities.frontend.app/run}}
+   :output-dir "resources/public/js"
+   }}}

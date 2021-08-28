@@ -1,4 +1,0 @@
-#!/bin/sh
-rm -rf resources/public/client.js
-rm -rf resources/public/js
-lein with-profile production do clean, cljsbuild once production, uberjar
