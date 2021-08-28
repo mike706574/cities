@@ -4,7 +4,7 @@
             [manifold.deferred :as d]
             [cities.card :as card]
             [cities.game :as game]
-            [cities.server.api.model :as model]
+            [cities.backend.api.model :as model]
             [taoensso.timbre :as log]))
 
 (def first-8

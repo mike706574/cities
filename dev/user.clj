@@ -6,7 +6,7 @@
 
 (repl/disable-reload!)
 
-(repl/set-refresh-dirs "dev" "src" "test")
+(repl/set-refresh-dirs "src")
 
 (log/set-level! :trace)
 
