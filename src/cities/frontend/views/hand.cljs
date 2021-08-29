@@ -14,6 +14,7 @@
      [:p "D"]]
     (let [drawn-card @(rf/subscribe [:drawn-discard])
           rank (rank drawn-card)]
+      (println "rendering here")
       [:div
        {:key "drawn-card"
         :class (str "card card-highlighted "
@@ -30,24 +31,25 @@
         destination @(rf/subscribe [:destination])
         available-discards @(rf/subscribe [:available-discards])]
     [:div
-     (map-indexed
-      (fn [index card]
-        (let [num (inc index)
-              selected? (= card selected-card)]
-          (if (and turn? destination selected?)
-            (when source (drawn-card num source))
-            (let [rank (rank card)
-                  color (name (:cities.card/color card))
-                  classes (str "card "
-                               color
-                               " rank- " rank
-                               " hand-" num
-                               (when turn? " pointer")
-                               (when selected? " selected-card"))]
-              [:div
-               {:key num
-                :class classes
-                :on-click #(when turn?
-                             (rf/dispatch [:card-change card]))}
-               [:p rank]]))))
-      hand)]))
+     (->> hand
+          (map-indexed
+           (fn [index card]
+             (let [num (inc index)
+                   selected? (= card selected-card)]
+               (if (and turn? destination selected?)
+                 (when source (drawn-card num source))
+                 (let [rank (rank card)
+                       color (name (:cities.card/color card))
+                       classes (str "card "
+                                    color
+                                    " rank- " rank
+                                    " hand-" num
+                                    (when turn? " pointer")
+                                    (when selected? " selected-card"))]
+                   [:div
+                    {:key num
+                     :class classes
+                     :on-click #(when turn?
+                                  (rf/dispatch [:card-change card]))}
+                    [:p rank]])))))
+          doall)]))

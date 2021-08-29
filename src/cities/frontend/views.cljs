@@ -91,7 +91,7 @@
 
 (defn container
   [body]
-  [:div
+  [:<>
    body
    [toast]])
 

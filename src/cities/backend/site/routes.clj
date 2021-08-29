@@ -18,13 +18,9 @@
   [{:keys [games game-bus] :as deps}]
   (compojure/routes
    (GET "/" req
-        (let [name "mike"]
-          (selmer/render-file "templates/client.html" {:player name})))
+        (selmer/render-file "templates/index.html" {}))
 
-   (GET "/login" req
-        (selmer/render-file
-         "templates/login.html"
-         {:anti-forgery-token
-          ring.middleware.anti-forgery/*anti-forgery-token*}))
+   (GET "/:player" []
+        (selmer/render-file "templates/game.html" {}))
 
    (route/not-found "No such page.")))

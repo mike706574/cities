@@ -78,7 +78,7 @@
 (defn ready-button
   []
   (when @(rf/subscribe [:turn-ready?])
-    [:button.mdl-button.mdl-js-button.mdl-button--fab.mdl-button--colored
+    [:button
      {:style {"position" "absolute"
               "left" "120px"
               "top" "100px"
@@ -104,7 +104,7 @@
 
 (defn button
   [label on-click]
-  [:button.mdl-button.mdl-button--raised
+  [:button
    {:value label
     :on-click  on-click}
    label])
@@ -161,9 +161,9 @@
      [:p {:style {"textAlign" "center"
                   "marginBottom" "0"}}
       player-sum]
-     [:div.mdl-grid
+     [:div
       [:div.play-container
-       [:button.play.mdl-button.mdl-button--raised
+       [:button.play
         {:value "Play"
          :on-click #(rf/dispatch [:back-to-game])}
         "Play"]]]]))

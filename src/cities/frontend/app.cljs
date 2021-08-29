@@ -28,7 +28,7 @@
 
 (defn db
   []
-  (cljs.pprint/pprint  @(rf/subscribe [:db])))
+  (cljs.pprint/pprint @(rf/subscribe [:db])))
 
 (defn toaster!
   []
@@ -50,7 +50,7 @@
 (defn retrieve-state!
   [player]
   (let [ch (chan)]
-    (go (log/debug (str "Retrieving state for " player "."))
+    (go (log/debug (str "Retrieving player state." {:player player}))
       (ajax/ajax-request
          {:uri "/api/menu"
           :method :get
@@ -62,24 +62,19 @@
                                   {:ok? false :response response}))))}))
     ch))
 
-(defn ^:export run
-  [player]
-  (log/info (str "Running apddplication as " player "."))
-  (log/info (str "whoa" "-" player "-"))
-  (if (= player "")
-    (throw (js/Error. "No player provided."))
+(defn init [player]
+  (let [player (str/lower-case (subs (-> js/window .-location .-pathname) 1))]
+    (log/info "Initializing app." {:player player})
     (go (let [state-chan (retrieve-state! player)
               ws-chan (websocket/connect! player)
-              responses (<! (async/map vector [state-chan ws-chan]))]
-          (if (every? :ok? responses)
-            (do
-              (let [state (:state (first
-                                   responses))
-                    toaster (toaster!)
-                    system {:player player
-                            :websocket (:websocket (second responses))
-                            :toaster toaster}]
-                (set! js/system system)
-                (rf/dispatch-sync [:initialize state system])
-                (rd/render [views/app] (js/document.getElementById "app"))))
-            (rd/render [views/initialization-error responses] (js/document.getElementById "app")))))))
+              resps (<! (async/map vector [state-chan ws-chan]))]
+          (if-not (every? :ok? resps)
+            (rd/render [views/initialization-error resps] (js/document.getElementById "app"))
+            (let [[{state :state} {websocket :websocket}] resps
+                  toaster (toaster!)
+                  system {:player player
+                          :websocket websocket
+                          :toaster toaster}]
+              (set! js/system system)
+              (rf/dispatch-sync [:initialize state system])
+              (rd/render [views/app] (js/document.getElementById "app"))))))))

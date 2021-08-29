@@ -16,11 +16,23 @@
 
 (defn rank [card] (if (card/wager? card) "W" (str (:cities.card/number card))))
 
+(defn classes [entries]
+  (->> entries
+       (filter (fn [entry]
+                 (or (string? entry)
+                     (= (count entry) 1)
+                     (second entry))))
+       (map (fn [entry]
+              (if (string? entry)
+                entry
+                (first entry))))))
+
 (defn discards [destination]
   (log/info "Rendering discard piles.")
   (let [destination @(rf/subscribe [:destination])
         available-discards @(rf/subscribe [:available-discards])
         source @(rf/subscribe [:source])
+        turn? @(rf/subscribe [:turn?])
         selected-card @(rf/subscribe [:card])]
     [:div
      (map
@@ -28,14 +40,14 @@
         (let [color (:cities.card/color card)]
           (when-not (or (= source color) (= destination color))
             (let [rank (rank card)
-                  classes (str "card "
-                               (name color)
-                               " rank-" rank
-                               " "
-                               (name color) "-discard")]
+                  class (classes ["card"
+                                  (name color)
+                                  (str "rank-" rank)
+                                  (str (name color) "-discard")
+                                  ["pointer" (and turn? destination)]])]
               [:div
-               {:key classes
-                :class classes
+               {:key (str "discard-" (name color))
+                :class class
                 :on-click #(when destination
                              (rf/dispatch [:source-change color]))}
                [:p rank]]))))
@@ -68,7 +80,7 @@
      {:key "draw-pile"
       :on-click #(when card
                    (if-not destination
-                     (rf/dispatch [:select-destination (:cities.card/color card)])
+                     (rf/dispatch [:select-destination :discard-pile])
                      (rf/dispatch [:source-change :draw-pile])))
       :class (str "draw-pile"
                   (when (= source :draw-pile) " selected-card")
@@ -81,11 +93,10 @@
     [:button
      {:style {"position" "absolute"
               "left" "120px"
-              "top" "100px"
-              "zIndex" "9"
-              "border" "1px solid white"}
+              "top" "170px"
+              "zIndex" "9"}
       :on-click #(rf/dispatch [:take-turn])}
-     [:i.material-icons "check"]]))
+     "Submit"]))
 
 (defn bottom []
   (log/info "Rendering bottom.")
@@ -143,6 +154,8 @@
 (defn container []
   (log/debug "Rendering game...")
   [:div
+   [player-info]
+   [round-info]
+   [toast-view/toast]
    [expedition-view/in-game-expeditions]
-   [bottom]
-   [toast-view/toast]])
+   [bottom]])

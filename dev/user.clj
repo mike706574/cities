@@ -4,8 +4,6 @@
             [com.stuartsierra.component :as component]
             [taoensso.timbre :as log]))
 
-(repl/disable-reload!)
-
 (repl/set-refresh-dirs "src")
 
 (log/set-level! :trace)

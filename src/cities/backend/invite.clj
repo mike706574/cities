@@ -53,7 +53,7 @@
      (if-not (contains? @invites invite)
        {:cities/status :invite-not-found}
        (let [id (str (inc (count @active-games)))
-             game (assoc (game/rand-game invite 2) ::game/id id)
+             game (assoc (game/rand-game invite) ::game/id id)
              event (event/store event-manager {:cities/status :game-created
                                                ::game/game game
                                                :cities/invite invite})]

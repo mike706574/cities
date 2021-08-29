@@ -1,5 +1,6 @@
 (ns cities.frontend.views.error
-  (:require [clojure.string :as str]
+  (:require [cljs.pprint :refer [pprint]]
+            [clojure.string :as str]
             [reagent.core :as r]
             [re-frame.core :as rf]
             [cities.game :as game]
@@ -11,7 +12,12 @@
 
 (defn error []
   (let [{:keys [error-message error-body]} @(rf/subscribe [:error])]
-  [:div
-   [:h5 "Error!"]
-   [:p error-message]
-   [:textarea {:rows "10" :cols "100"} error-body]]))
+    (println error-body)
+    [:div
+     [:h5 "Error!"]
+     [:p error-message]
+     [:textarea
+      {:rows "10"
+       :cols "100"
+       :style {"height" "70vh"}
+       :value (with-out-str (pprint error-body))}]]))

@@ -23,11 +23,13 @@
                [:span
                 (str (first invite) " invited you to play.")]
                [:span
+                {:style {"marginLeft" "1rem"}}
                 (button "Accept" #(rf/dispatch [:accept-invite (first invite)]))]
                [:span
+                {:style {"marginLeft" "1rem"}}
                 (button "Reject" #(rf/dispatch [:reject-invite (first invite)]))]])]
       [:div
-       [:h5.no-margin "Received Invites"]
+       [:h5.no-margin "Invites received"]
        (if (empty? invites)
          [:p.spaced-text "You haven't received any invites."]
          [:ul
@@ -37,13 +39,10 @@
   [games]
   (letfn [(game-item [[id game]]
             (let [{:keys [::game/opponent]} game]
-              [:li
-               {:key id}
+              [:li {:key id}
+               [:span (str opponent " [" id "]")]
                [:span
-                [:img
-                 {:src (str "images/" @(rf/subscribe [:avatar opponent])) }]
-                (str opponent " [" id "]")]
-               [:span
+                {:style {"marginLeft" "1rem"}}
                 (button "Play" #(rf/dispatch [:play-game id]))]]))]
     [:ul
      (doall (map game-item games))]))
@@ -67,10 +66,11 @@
 (defn sent-invites []
   (let [invites @(rf/subscribe [:sent-invites])]
     (letfn [(list-item [index invite]
-              [:li
+              [:li {:key index}
                [:span
                 (str "You invited " (second invite) " to play.")]
                [:span
+                {:style {"marginLeft" "1rem"}}
                 (button "Cancel" #(rf/dispatch [:cancel-invite (second invite)]))]])]
       (if (empty? invites)
         [:p.spaced-text "You haven't sent any invites."]
@@ -109,9 +109,9 @@
 (defn outbox
   []
   [:div
-   [:h5.no-margin "Sent invites"]
-   [invite-form]
-   [sent-invites]])
+   [:h5.no-margin "Invites sent"]
+   [sent-invites]
+   [invite-form]])
 
 (defn menu []
   (log/debug "Rendering menu.")

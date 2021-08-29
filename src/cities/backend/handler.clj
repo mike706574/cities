@@ -24,8 +24,7 @@
           (api request)
           (site request))))))
 
-(defn factory
-  []
+(defn factory []
   (component/using (map->CitiesHandlerFactory {})
                    [:game-manager :invite-manager :game-bus :player-bus
                     :event-manager :conn-manager :user-manager]))

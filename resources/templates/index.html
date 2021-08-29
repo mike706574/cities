@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Cities</title>
+    <meta name="description" content="Index page">
+    <meta name="author" content="mike706574">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="css/normalize.css">
+    <link rel="stylesheet" href="css/skeleton.css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="column" style="margin-top: 1em">
+          <h1>Cities</h1>
+          <form onsubmit="return play();">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" value="Mike" />
+            <button type="submit" id="play-button">Play</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <script>
+      function play() {
+        var name = document.getElementById("name").value;
+        window.location.href = window.location.href + name;
+        return false;
+      }
+    </script>
+  </body>
+</html>

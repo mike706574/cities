@@ -2,6 +2,16 @@
   (:require [re-frame.core :as rf]
             [cities.game :as game]))
 
+(defn game [db]
+  (get-in db [:active-games (:game-id db)]))
+
+(defn available-discards [db]
+  (get-in (game db) [:cities.game/round :cities.game/available-discards]))
+
+(defn my-turn?
+  [player [_ game]]
+  (= player (-> game :cities.game/round :cities.game/turn)))
+
 (rf/reg-sub
  :db
  (fn [db _]
@@ -21,10 +31,6 @@
  :status-message
  (fn [db _]
    (:status-message db)))
-
-(defn my-turn?
-  [player [_ game]]
-  (= player (-> game :cities.game/round :cities.game/turn)))
 
 (rf/reg-sub
  :ready-games
@@ -86,7 +92,7 @@
  :drawn-discard
  (fn [db _]
    (when-let [source (:source db)]
-     (first (filter #(= (:cities.card/color %) source) (:available-discards db))))))
+     (first (filter #(= (:cities.card/color %) source) (available-discards db))))))
 
 (rf/reg-sub
  :source
@@ -99,8 +105,6 @@
    (:move-message db)))
 
 ;; Game
-(defn game [db] (get-in db [:active-games (:game-id db)]))
-
 (rf/reg-sub
  :game
  (fn [db _]
@@ -166,7 +170,7 @@
 (rf/reg-sub
  :available-discards
  (fn [db _]
-   (get-in (game db) [:cities.game/round :cities.game/available-discards])))
+   (available-discards db)))
 
 (rf/reg-sub
  :past-rounds

@@ -17,7 +17,7 @@
 (defn handle
   [{:keys [games invites player-bus conn-manager] :as deps} req]
   (d/let-flow [conn (d/catch
-                        (http/websocket-connection req)
+                        (http/websocket-connection req {:heartbeats {:send-after-idle 100}})
                         (constantly nil))]
     (if-not conn
       (non-websocket-response)

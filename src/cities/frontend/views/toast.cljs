@@ -10,19 +10,22 @@
             [taoensso.timbre :as log]))
 
 (defn toast []
-  (let [{:keys [message action-event action-label color] :as toast}  @(rf/subscribe [:toast])]
+  (let [{:keys [message action-event action-label color] :as toast} @(rf/subscribe [:toast])]
+    (println "MAYBE TOAST" toast)
     (if toast
-      [:div#toast.toaster.mdl-js-snackbar.mdl-snackbar.mdl-snackbar--active
-       {:aria-hidden "false"
-        :style {"zIndex" "10"}}
-       [:div.mdl-snackbar__text (or message "No message.")]
-       (when action-event
-         [:button.mdl-snackbar__action
-          {:type "button"
-           :on-click #(rf/dispatch action-event)}
-          (or action-label "Perform Action")])]
-      [:div#toast.mdl-js-snackbar.mdl-snackbar
+      (do
+        (println "RENDER TOAST" toast)
+        [:div
+         {:aria-hidden "false"
+          :style {"zIndex" "10"}}
+         [:div (or message "No message.")]
+         (when action-event
+           [:button
+            {:type "button"
+             :on-click #(rf/dispatch action-event)}
+            (or action-label "Perform Action")])])
+      [:div
        {:class ""
         :style {"zIndex" "10"}
         :aria-hidden "true"}
-       [:div.mdl-snackbar__text ""]])))
+       [:div ""]])))

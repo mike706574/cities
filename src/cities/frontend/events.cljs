@@ -18,7 +18,9 @@
 
 (defn screen-toast!
   [target {:keys [toaster screen] :as db} body]
+  (println "MIGHT TOAST")
   (when (or (not screen) (= screen target))
+    (println "TOASTING")
     (go (>! toaster body)))
   db)
 
@@ -55,7 +57,9 @@
 
 (defmethod handle-message :error
   [db {error-message :cities/error-message}]
-  (assoc db :screen :error :error-message :error-message))
+  (merge db {:screen :error
+             :error-message :error-message
+             :error-body :error-body}))
 
 (defmethod handle-message :sent-invite
   [db {invite :cities/invite :as event}]
@@ -257,6 +261,7 @@
   (let [{:keys [:card :destination :source :player]} db
         move (game/move player card destination source)
         uri (str "/api/game/" (:game-id db))]
+    (println "TAKE TURN")
     {:http-xhrio {:method :put
                   :uri uri
                   :params move
@@ -272,18 +277,18 @@
 
 (defn handle-turn-failure
   [db [_ {status :status response :response :as failure}]]
-  (if-not (= status 409)
-    (assoc db :screen :error :error-message (str response))
-    (if-not (= (:cities/status response) :turn-not-taken)
-      (assoc db :screen :error :error-message (str response))
-      (let [message (case (:cities.game/status response)
-                      :too-low "Too low!"
-                      :expedition-underway "Expedition already underway!"
-                      :invalid-move "Invalid move!"
-                      :discard-empty "Discard empty!"
-                      :card-not-in-hand "Card not in hand!")]
-        (game-toast! db {:message message})
-        (assoc db :card nil :destination nil :source nil)))))
+  (if (and (= status 409) (= (:cities/status response) :turn-not-taken))
+    (let [message (case (:cities.game/status response)
+                    :too-low "Too low!"
+                    :expedition-underway "Expedition already underway!"
+                    :invalid-move "Invalid move!"
+                    :discard-empty "Discard empty!"
+                    :card-not-in-hand "Card not in hand!")]
+      (game-toast! db {:message message})
+      (assoc db :card nil :destination nil :source nil))
+    (merge db {:screen :error
+               :error-message "Failed to take turn."
+               :error-body response})))
 
 (defn handle-generic-error
   [db [_ body]]

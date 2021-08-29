@@ -14,6 +14,6 @@
  :builds
  {:frontend
   {:target :browser
-   :modules {:main {:init-fn cities.frontend.app/run}}
+   :modules {:main {:init-fn cities.frontend.app/init}}
    :output-dir "resources/public/js"
    }}}

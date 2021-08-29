@@ -80,7 +80,7 @@
 
 (defn round-over-expeditions
   [player-exps opponent-exps]
-  [:div.top-container.mdl-cell.mdl-cell--12-col.no-select
+  [:div
    markers
    [player-expeditions player-exps]
    [opponent-expeditions opponent-exps]])
@@ -88,7 +88,7 @@
 (defn in-game-expeditions []
   (let [turn? @(rf/subscribe [:turn?])]
     [:div
-     {:class (str "top-container mdl-cell mdl-cell--12-col no-select" (when turn? " pointer"))
+     {:class (str "top-container no-select" (when turn? " pointer"))
       :on-click #(rf/dispatch [:select-destination :expedition])}
      markers
      [player-expeditions @(rf/subscribe [:expeditions])]
