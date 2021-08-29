@@ -181,8 +181,3 @@
  :toast
  (fn [db _]
    (:toast db)))
-
-(rf/reg-sub
- :avatar
- (fn [db [_ username]]
-   (get (:avatars db) username)))

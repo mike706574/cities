@@ -12,7 +12,6 @@
 
 (defn error []
   (let [{:keys [error-message error-body]} @(rf/subscribe [:error])]
-    (println error-body)
     [:div
      [:h5 "Error!"]
      [:p error-message]

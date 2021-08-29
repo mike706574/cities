@@ -77,7 +77,6 @@
 ;; TODO: Handle errors
 (defn connect!
   [ws-url id]
-  (println "CONNECTIN 2" ws-url)
   (let [conn @(http/websocket-client ws-url)]
     (send! conn id)
     (is (not= :timeout

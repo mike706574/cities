@@ -7,27 +7,34 @@
             [cities.backend.http :refer [with-body
                                       handle-exceptions
                                       body-response
-                                      not-acceptable
-                                      parsed-body
-                                      unsupported-media-type]]
+                                      not-acceptable]]
             [cities.backend.api.model :as model]
             [cities.backend.util :as util]
             [taoensso.timbre :as log]))
+
+(defn handle-getting-users
+  [{:keys [user-manager]} request]
+  (handle-exceptions request
+    (body-response 200 request (user-api/users user-manager))))
 
 (defn handle-sending-invite
   [{:keys [player-bus user-manager invite-manager]} request]
   (handle-exceptions request
     (with-body [invite :cities/invite request]
       (let [[sender recipient] invite
-            player (get-in request [:headers "player"])]
+            player (get-in request [:headers "player"])
+            reject-invite (fn [status]
+                            (body-response 409 request {:cities/status status
+                                                        :cities/invite invite}))]
         (cond
-          (not (= player sender)) (body-response 403 request {:cities.backend/message "Sending invites for other players is not allowed."})
-          (= sender recipient) (body-response 409 request {:cities.backend/message "You can't invite yourself."})
-          (not (user-api/credentials user-manager recipient)) (body-response 409 request {:cities.backend/message (str "Player " recipient " does not exist.")})
+          (not (= player sender)) (body-response 403 request {:cities/message "Sending invites for other players is not allowed."
+                                                              :cities/invite invite})
+          (= sender recipient) (reject-invite :invited-self)
+          (not (user-api/user user-manager recipient)) (reject-invite :invited-player-not-found)
           :else
           (let [{status :cities/status event-id :cities/event-id :as response} (invite-api/send-invite invite-manager invite)]
             (if-not (= status :sent-invite)
-              (body-response 409 request response)
+              (reject-invite status)
               (do (log/debug (str "[#" event-id "] Sent invite " invite))
                   (bus/publish! player-bus sender response)
                   (bus/publish! player-bus recipient (assoc response :cities/status :received-invite))
@@ -122,7 +129,7 @@
       out)))
 
 (defn handle-menu-retrieval
-  [{:keys [game-manager invite-manager user-manager]} request]
+  [{:keys [game-manager invite-manager]} request]
   (handle-exceptions request
     (let [player (get-in request [:headers "player"])
           active-games (->> player
@@ -133,12 +140,7 @@
           usernames (-> #{}
                     (into (mapcat identity invites))
                     (into (map (comp :cities.game/opponent val)) active-games))
-          avatars (into {} (map
-                            (fn [username]
-                              [username (user-api/avatar user-manager username)])
-                            usernames))
           menu {:cities.player/id player
                 :cities/active-games active-games
-                :cities/avatars avatars
                 :cities/invites invites}]
       (body-response 200 request menu))))

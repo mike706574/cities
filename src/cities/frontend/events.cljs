@@ -18,9 +18,7 @@
 
 (defn screen-toast!
   [target {:keys [toaster screen] :as db} body]
-  (println "MIGHT TOAST")
   (when (or (not screen) (= screen target))
-    (println "TOASTING")
     (go (>! toaster body)))
   db)
 
@@ -261,7 +259,6 @@
   (let [{:keys [:card :destination :source :player]} db
         move (game/move player card destination source)
         uri (str "/api/game/" (:game-id db))]
-    (println "TAKE TURN")
     {:http-xhrio {:method :put
                   :uri uri
                   :params move
@@ -309,7 +306,6 @@
    (let [toaster (:toaster system)
          {player :cities.player/id
           active-games :cities/active-games
-          avatars :cities/avatars
           invites :cities/invites} state]
      (log/debug "Initialized!")
      {:screen :menu
@@ -318,7 +314,6 @@
       :status-message "Initialized."
       :events {}
       :game-id nil
-      :avatars avatars
       :active-games active-games
       :invites invites
       :card nil
@@ -345,6 +340,8 @@
                      (case (:cities/status response)
                        :invite-already-sent (str "You've already invited " recipient ".")
                        :invite-already-received (str "You already have an invite from " recipient ".")
+                       :invited-player-not-found (str "Player " recipient " not found.")
+                       :invited-self (str "You cannot invite yourself.")
                        (pretty response)))]
        (menu-toast! db {:message message}))
      (assoc db :screen :error :error-message (str response)))))

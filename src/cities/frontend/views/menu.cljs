@@ -98,10 +98,6 @@
                   :on-key-press #(when (= (.-charCode %) 13)
                                    (send-invite))}]
          [:button
-          {:on-click #(reset! recipient-model "")
-           :style {"marginLeft" "1em"}}
-          "Clear"]
-         [:button
           {:on-click send-invite
            :style {"marginLeft" "1em"}}
           "Send Invite"]]))))

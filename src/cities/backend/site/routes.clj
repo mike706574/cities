@@ -14,13 +14,19 @@
               [selmer.parser :as selmer]
               [taoensso.timbre :as log]))
 
+(defn check-player!
+  [{:keys [user-manager]} {{player :player} :params}]
+  (when-not (user-api/user user-manager player)
+    (user-api/add! user-manager {:name player})))
+
 (defn routes
   [{:keys [games game-bus] :as deps}]
   (compojure/routes
    (GET "/" req
         (selmer/render-file "templates/index.html" {}))
 
-   (GET "/:player" []
+   (GET "/:player" req
+        (check-player! deps req)
         (selmer/render-file "templates/game.html" {}))
 
    (route/not-found "No such page.")))

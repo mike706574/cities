@@ -14,5 +14,6 @@
    (POST "/api/invite" request (resource/handle-sending-invite deps request))
    (GET "/api/invites" request (resource/handle-sending-invite deps request))
    (DELETE "/api/invite/:sender/:recipient" request (resource/handle-deleting-invite deps request))
+   (GET "/api/users" request (resource/handle-getting-users deps request))
    (GET "/api/websocket" [] (websocket/handler deps))
    (route/not-found {:status 200})))

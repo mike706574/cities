@@ -1,9 +1,11 @@
 (ns cities.backend.http
   (:require [cognitect.transit :as transit]
             [clojure.edn :as edn]
+            [clojure.pprint :as pp]
             [clojure.set :as set]
             [clojure.spec.alpha :as spec]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [clojure.string :as str]))
 
 (def supported-media-types #{"application/edn"
                              "application/transit+json"
@@ -58,9 +60,19 @@
     (catch Exception ex
       (log/error ex "Failed to parse transit+msgpack request body."))))
 
+(defn resolve-accept [request]
+  (-> request
+      (get-in [:headers "accept"])
+      (str/split #",")
+      (first)))
+
 (defmulti response-body
   (fn [request body]
-    (get-in request [:headers "accept"])))
+    (resolve-accept request)))
+
+(defmethod response-body "*/*"
+  [request body]
+  (pr-str body))
 
 (defmethod response-body "application/edn"
   [request body]
@@ -90,10 +102,23 @@
                        :body body
                        :exception ex})))))
 
+
+(defmethod response-body "text/html"
+  [request body]
+  (try
+    (str "<!DOCTYPE html><html><body><pre>"
+         (with-out-str (pp/pprint body))
+         "</pre></body></html>")
+    (catch Exception ex
+      (throw (ex-info "Failed to write text/html response body."
+                      {:request request
+                       :body body
+                       :exception ex})))))
+
 (defn body-response
   [status request body]
   {:status status
-   :headers {"Content-Type" (get-in request [:headers "accept"])}
+   :headers {"Content-Type" (resolve-accept request)}
    :body (response-body request body)})
 
 (defmacro with-body

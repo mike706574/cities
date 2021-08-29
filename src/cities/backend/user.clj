@@ -3,15 +3,18 @@
 
 (defprotocol UserManager
   "Manages users."
-  (credentials [this username])
-  (avatar [this username]))
+  (user [this username])
+  (users [this])
+  (add! [this user]))
 
 (defrecord AtomUserManager [users]
   UserManager
-  (credentials [this username]
+  (user [this username]
     (get @users username))
-  (avatar [this username]
-    (:avatar (get @users username))))
+  (users [this]
+    (vec (vals @users)))
+  (add! [this user]
+    (swap! users assoc (:name user) user)))
 
 (defn manager []
   (component/using (map->AtomUserManager {})

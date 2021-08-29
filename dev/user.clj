@@ -14,12 +14,15 @@
 
 (defn init []
   (alter-var-root #'system (constantly (system/system config)))
-  :init)
+  :initialized)
 
 (defn start []
   (try
-    (alter-var-root #'system component/start-system)
-    :started
+    (if (nil? system)
+      :uninitialized
+      (do
+        (alter-var-root #'system component/start-system)
+        :started))
     (catch Exception ex
       (log/error (or (.getCause ex) ex) "Failed to start system.")
       :failed)))

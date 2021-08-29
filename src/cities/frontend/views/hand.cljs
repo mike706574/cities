@@ -14,7 +14,6 @@
      [:p "D"]]
     (let [drawn-card @(rf/subscribe [:drawn-discard])
           rank (rank drawn-card)]
-      (println "rendering here")
       [:div
        {:key "drawn-card"
         :class (str "card card-highlighted "

@@ -14,26 +14,6 @@
             [taoensso.timbre :as log]
             [taoensso.timbre.appenders.core :as appenders]))
 
-(def users
-  (atom {"admin" {:username "admin"
-                  :password "admin"
-                  :roles #{:cities/admin}
-                  :avatar "user.jpg"}
-         "mike" {:username "mike"
-                 :password "mike"
-                 :roles #{:cities/user}
-                 :avatar "cookie.jpg"}
-         "abby" {:username "abby"
-                 :password "abby"
-                 :roles #{:cities/user}
-                 :avatar "user.jpg"}
-         "guest" {:username "guest"
-                  :password "guest"
-                  :roles #{:cities/user}
-                  :avatar "user.jpg"}}))
-
-(derive :cities/admin :cities/user)
-
 (defn system
   [config]
   (log/info "Building system.")
@@ -47,7 +27,7 @@
    :completed-games (ref {})
 
    :invites (ref #{})
-   :users users
+   :users (atom {})
 
    :conn-manager (conn/manager)
 
