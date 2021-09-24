@@ -20,7 +20,7 @@
     (try
       (log/info "Starting service." info)
       (let [handler (handler/handler handler-factory)
-            server (aleph-http/start-server handler {:port port})]
+            server (aleph-http/start-server handler info)]
         (log/info "Finished starting service." info)
         (assoc service :server server))
       (catch java.net.BindException e

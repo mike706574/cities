@@ -1,0 +1,149 @@
+:root {
+  --card-height: 60px;
+  --card-width: 42px;
+  --card-font-size: 9pt;
+
+  --stack-offset: 25px;
+
+  --hand-row-size: 8;
+}
+
+@media (min-width: 375px) {
+  :root {
+    --card-height: 75px;
+    --card-width: 52px;
+    --card-font-size: 10pt;
+
+    --stack-offset: 25px;
+  }
+}
+
+@media (min-width: 750px) {
+  :root {
+    --card-height: 100px;
+    --card-width: 70px;
+    --card-font-size: 12pt;
+
+    --stack-offset: 25px;
+  }
+}
+
+body {
+  background: #1F2937;
+  color: white;
+}
+
+
+.stacks-container {
+  height: 500px;
+}
+
+.stacks {
+  margin-bottom: 1rem;
+  display: grid;
+  grid-gap: 0.5rem;
+  justify-items: center;
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.stack {
+  margin-bottom: 1rem;
+  display: grid;
+  grid-gap: 0.5rem;
+  grid-template-rows: 1fr;
+  grid-template-rows: repeat(13, var(--stack-offset));
+}
+
+.card {
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 5px;
+  border: 1px solid white;
+  display: grid;
+  font-size: var(--card-font-size);
+  font-weight: 800;
+  grid-template-columns: 25px 70px 25px;
+  grid-template-rows: 30px 90px 30px;
+  height: var(--card-height);
+  justify-items: center;
+  position: relative;
+  width: var(--card-width);
+}
+
+
+
+.hand {
+  margin-bottom: 1rem;
+  display: grid;
+  grid-gap: 0.5rem;
+  justify-items: center;
+  grid-template-columns: repeat(var(--hand-row-size), 1fr);
+}
+
+.ci-expeditions {
+  display: grid;
+  grid-gap: 0.25em 1.5em;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(14, minmax(0, 1fr));
+  margin-bottom: 2em;
+}
+
+.ci-discards {
+  display: grid;
+  grid-gap: 0.25em 1.5em;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 2em;
+}
+
+
+.ci-card {
+  font-size: 0.75em;
+  height: 6em;
+  background: #EEE;
+  border-style: solid;
+  border-color: black;
+}
+
+
+.ci-bottom {
+  display: grid;
+  grid-gap: 0.25em 1.5em;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+}
+
+.ci-hand {
+  display: grid;
+  grid-gap: 0.25em 1.5em;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+
+.black {
+  color: white;
+  background-color: black;
+}
+
+.white {
+  background-color: #4B5563;
+  color: white;
+}
+
+.green {
+  color: white;
+  background-color: #065F46;
+}
+
+.blue {
+  color: white;
+  background-color: #1E40AF;
+}
+
+.yellow {
+  color: white;
+  background-color: #F59E0B;
+}
+
+.red {
+  color: white;
+  background-color: #991B1B;
+}
